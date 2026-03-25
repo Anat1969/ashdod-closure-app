@@ -5,8 +5,12 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import ClosureManager from './pages/ClosureManager';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import OwnerPage from './pages/OwnerPage';
+import ArchitectPage from './pages/ArchitectPage';
 import MapView from './pages/MapView';
+import ResidentsPage from './pages/ResidentsPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -34,8 +38,13 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      <Route path="/" element={<ClosureManager />} />
-      <Route path="/map" element={<MapView />} />
+      <Route element={<Layout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/owner" element={<OwnerPage />} />
+        <Route path="/architect" element={<ArchitectPage />} />
+        <Route path="/map" element={<MapView />} />
+        <Route path="/residents" element={<ResidentsPage />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
