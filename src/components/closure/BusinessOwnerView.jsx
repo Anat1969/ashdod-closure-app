@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import ApplicationWizard from './ApplicationWizard';
 import StatusBadge from './StatusBadge';
-import { Plus, FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 
 export default function BusinessOwnerView() {
   const [apps, setApps] = useState([]);
@@ -72,12 +72,20 @@ export default function BusinessOwnerView() {
                 )}
               </div>
               <div className="flex gap-2">
-                {(app.status === 'pending_owner') && (
+                {app.status === 'pending_owner' && (
                   <button
                     onClick={() => setSelected(app)}
                     className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 text-sm"
                   >
                     המשך מילוי
+                  </button>
+                )}
+                {app.status === 'rejected' && (
+                  <button
+                    onClick={() => setSelected(app)}
+                    className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 text-sm"
+                  >
+                    ערוך והגש מחדש
                   </button>
                 )}
               </div>

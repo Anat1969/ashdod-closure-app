@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from './StatusBadge';
-import { CheckCircle, XCircle, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
-
-const STATUS_LABELS = {
-  pending_owner: 'ממתין לבעל עסק',
-  pending_review: 'ממתין לבדיקה',
-  approved: 'מאושר',
-  rejected: 'נדחה',
-};
+import { CheckCircle, XCircle, MessageSquare, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 
 export default function ArchitectView() {
   const [apps, setApps] = useState([]);
@@ -31,19 +24,27 @@ export default function ArchitectView() {
     setSaving(app.id);
     await base44.entities.ClosureApplication.update(app.id, {
       status,
-      notes: notes[app.id] || app.notes || '',
+      notes: notes[app.id] ?? app.notes ?? '',
     });
     setSaving(null);
+    setExpanded(null);
     load();
   };
 
   const filtered = filter === 'all' ? apps : apps.filter(a => a.status === filter);
 
+  const stats = [
+    { label: 'ממתינות לבדיקה', count: apps.filter(a => a.status === 'pending_review').length, color: 'text-amber-600', bg: 'bg-amber-50', val: 'pending_review' },
+    { label: 'ממתינות לבעל עסק', count: apps.filter(a => a.status === 'pending_owner').length, color: 'text-blue-600', bg: 'bg-blue-50', val: 'pending_owner' },
+    { label: 'מאושרות', count: apps.filter(a => a.status === 'approved').length, color: 'text-green-600', bg: 'bg-green-50', val: 'approved' },
+    { label: 'נדחות', count: apps.filter(a => a.status === 'rejected').length, color: 'text-red-600', bg: 'bg-red-50', val: 'rejected' },
+  ];
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">לוח בקרה — אדריכל העיר</h2>
-        <div className="flex gap-2">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h2 className="text-2xl font-bold text-gray-800">לוח בקרה — בודק עירייה</h2>
+        <div className="flex gap-2 flex-wrap">
           {[
             { val: 'pending_review', label: 'ממתינות' },
             { val: 'all', label: 'הכל' },
@@ -63,18 +64,17 @@ export default function ArchitectView() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats — clickable */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'ממתינות לבדיקה', count: apps.filter(a => a.status === 'pending_review').length, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'ממתינות לבעל עסק', count: apps.filter(a => a.status === 'pending_owner').length, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'מאושרות', count: apps.filter(a => a.status === 'approved').length, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: 'נדחות', count: apps.filter(a => a.status === 'rejected').length, color: 'text-red-600', bg: 'bg-red-50' },
-        ].map(s => (
-          <div key={s.label} className={`${s.bg} rounded-xl p-4 text-center`}>
+        {stats.map(s => (
+          <button
+            key={s.label}
+            onClick={() => setFilter(s.val)}
+            className={`${s.bg} rounded-xl p-4 text-center transition-all hover:opacity-80 ${filter === s.val ? 'ring-2 ring-offset-1 ring-blue-400' : ''}`}
+          >
             <div className={`text-3xl font-bold ${s.color}`}>{s.count}</div>
             <div className="text-gray-600 text-sm mt-1">{s.label}</div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -98,36 +98,57 @@ export default function ArchitectView() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400">{app.type === 'type1' ? 'עונתי' : 'קבוע'} · {app.area} מ״ר</span>
+                  <span className="text-xs text-gray-400 hidden sm:block">{app.type === 'type1' ? 'עונתי' : 'קבוע'} · {app.area} מ״ר</span>
                   {expanded === app.id ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                 </div>
               </div>
 
               {expanded === app.id && (
-                <div className="border-t border-gray-100 p-5 space-y-4">
+                <div className="border-t border-gray-100 p-5 space-y-5">
                   {/* Details */}
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div><span className="text-gray-500">בעל עסק:</span> <span className="font-medium">{app.owner}</span></div>
                     <div><span className="text-gray-500">טלפון:</span> <span className="font-medium">{app.phone}</span></div>
                     <div><span className="text-gray-500">דוא״ל:</span> <span className="font-medium">{app.email}</span></div>
                     <div><span className="text-gray-500">שטח:</span> <span className="font-medium">{app.area} מ״ר</span></div>
+                    {app.lat && app.lng && (
+                      <div className="col-span-2 flex items-center gap-1 text-gray-500">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>מיקום: {Number(app.lat).toFixed(5)}, {Number(app.lng).toFixed(5)}</span>
+                        <a
+                          href={`https://www.google.com/maps?q=${app.lat},${app.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-xs mr-2"
+                        >
+                          פתח במפות Google
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   {/* Checklist */}
                   {app.checklist && Object.keys(app.checklist).length > 0 && (
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">תנאים שאושרו:</p>
-                      <div className="flex flex-wrap gap-2">
+                      <p className="text-sm font-medium text-gray-700 mb-2">תנאים שהוצהרו:</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                         {Object.entries(app.checklist).map(([k, v]) => (
-                          <span key={k} className={`text-xs px-2 py-1 rounded-full ${v ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                            {k}
+                          <span key={k} className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${v ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                            {v ? '✓' : '✗'} {k}
                           </span>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Notes */}
+                  {/* Previous architect notes */}
+                  {app.notes && !(notes[app.id] !== undefined) && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800">
+                      <strong>הערה קודמת:</strong> {app.notes}
+                    </div>
+                  )}
+
+                  {/* Notes input */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                       <MessageSquare className="w-4 h-4" /> הערות לבעל העסק
@@ -142,26 +163,8 @@ export default function ArchitectView() {
                   </div>
 
                   {/* Actions */}
-                  {app.status === 'pending_review' && (
-                    <div className="flex gap-3 justify-end">
-                      <button
-                        onClick={() => handleDecision(app, 'rejected')}
-                        disabled={saving === app.id}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 text-sm"
-                      >
-                        <XCircle className="w-4 h-4" /> דחה בקשה
-                      </button>
-                      <button
-                        onClick={() => handleDecision(app, 'approved')}
-                        disabled={saving === app.id}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                      >
-                        <CheckCircle className="w-4 h-4" /> אשר בקשה
-                      </button>
-                    </div>
-                  )}
-                  {app.status !== 'pending_review' && (
-                    <div className="flex gap-3 justify-end">
+                  <div className="flex flex-wrap gap-3 justify-end">
+                    {app.status !== 'pending_review' && (
                       <button
                         onClick={() => handleDecision(app, 'pending_review')}
                         disabled={saving === app.id}
@@ -169,14 +172,26 @@ export default function ArchitectView() {
                       >
                         החזר לבדיקה
                       </button>
-                      {app.status !== 'approved' && (
-                        <button onClick={() => handleDecision(app, 'approved')} disabled={saving === app.id}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
-                          <CheckCircle className="w-4 h-4" /> אשר
-                        </button>
-                      )}
-                    </div>
-                  )}
+                    )}
+                    {app.status !== 'rejected' && (
+                      <button
+                        onClick={() => handleDecision(app, 'rejected')}
+                        disabled={saving === app.id}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 text-sm"
+                      >
+                        <XCircle className="w-4 h-4" /> דחה בקשה
+                      </button>
+                    )}
+                    {app.status !== 'approved' && (
+                      <button
+                        onClick={() => handleDecision(app, 'approved')}
+                        disabled={saving === app.id}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                      >
+                        <CheckCircle className="w-4 h-4" /> אשר בקשה
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

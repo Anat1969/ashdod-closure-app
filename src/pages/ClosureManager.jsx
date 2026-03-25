@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import BusinessOwnerView from '../components/closure/BusinessOwnerView';
 import ArchitectView from '../components/closure/ArchitectView';
@@ -15,7 +15,12 @@ const ROLES = [
 export default function ClosureManager() {
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === 'admin';
-  const [activeRole, setActiveRole] = useState('owner');
+  const defaultRole = isAdmin ? 'architect' : 'owner';
+  const [activeRole, setActiveRole] = useState(defaultRole);
+
+  useEffect(() => {
+    setActiveRole(isAdmin ? 'architect' : 'owner');
+  }, [isAdmin]);
 
   return (
     <div dir="rtl" className="min-h-screen bg-gray-50 font-sans">

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { ChevronRight, ChevronLeft, Send } from 'lucide-react';
+import MapPicker from './MapPicker';
 
 const CHECKLIST_TYPE1 = [
   { id: 'c1_1', text: 'קיים היתר בנייה או אישור לשימוש חורגה' },
@@ -40,8 +41,8 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
     type: application?.type || 'type1',
     area: application?.area || '',
     checklist: application?.checklist || {},
-    lat: application?.lat || 31.8014,
-    lng: application?.lng || 34.6436,
+    lat: application?.lat || null,
+    lng: application?.lng || null,
   });
 
   const checklist = form.type === 'type1' ? CHECKLIST_TYPE1 : CHECKLIST_TYPE2;
@@ -69,7 +70,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
   };
 
   const canNext = () => {
-    if (step === 0) return form.business && form.owner && form.address && form.phone && form.email;
+    if (step === 0) return form.business && form.owner && form.address && form.phone && form.email && form.lat && form.lng;
     if (step === 1) return form.type && form.area;
     if (step === 2) return allChecked;
     return true;
@@ -79,7 +80,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
         <button onClick={onCancel} className="text-gray-500 hover:text-gray-700">→ חזרה</button>
-        <h2 className="text-xl font-bold text-gray-800">{isEdit ? 'עריכת בקשה' : 'הגשת בקשה חדשה'}</h2>
+        <h2 className="text-xl font-bold text-gray-800">{isEdit ? 'עריכה והגשה מחדש' : 'הגשת בקשה חדשה'}</h2>
       </div>
 
       {/* Steps */}
@@ -112,6 +113,11 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
                 />
               </div>
             ))}
+            <MapPicker
+              lat={form.lat}
+              lng={form.lng}
+              onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))}
+            />
           </div>
         )}
 
@@ -183,6 +189,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
               <p><strong>כתובת:</strong> {form.address}</p>
               <p><strong>סוג:</strong> {form.type === 'type1' ? 'סגירה עונתית/חורף' : 'מבנה קבוע/עונתי'}</p>
               <p><strong>שטח:</strong> {form.area} מ״ר</p>
+              <p><strong>מיקום:</strong> {form.lat ? `${Number(form.lat).toFixed(5)}, ${Number(form.lng).toFixed(5)}` : 'לא סומן'}</p>
               <p><strong>תנאים מאושרים:</strong> {checklist.filter(c => form.checklist[c.id]).length}/{checklist.length}</p>
             </div>
           </div>

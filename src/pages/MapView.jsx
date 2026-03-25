@@ -73,7 +73,7 @@ export default function MapView() {
   const markerRefs = useRef({});
 
   useEffect(() => {
-    base44.entities.ClosureApplication.list('-created_date', 100)
+    base44.entities.ClosureApplication.list('-created_date', 200)
       .then(data => { setApps(data); setLoading(false); });
   }, []);
 
