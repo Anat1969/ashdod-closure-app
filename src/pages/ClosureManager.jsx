@@ -55,7 +55,7 @@ export default function ClosureManager() {
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{role.label}</span>
+                  <span>{role.label}</span>
                 </button>
               );
             })}
