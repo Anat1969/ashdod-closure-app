@@ -3,7 +3,8 @@ import { useAuth } from '@/lib/AuthContext';
 import BusinessOwnerView from '../components/closure/BusinessOwnerView';
 import ArchitectView from '../components/closure/ArchitectView';
 import ResidentView from '../components/closure/ResidentView';
-import { Building2, HardHat, Users } from 'lucide-react';
+import { Building2, HardHat, Users, Map } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const ROLES = [
   { id: 'owner', label: 'בעל עסק', icon: Building2 },
@@ -49,6 +50,13 @@ export default function ClosureManager() {
                 </button>
               );
             })}
+            <Link
+              to="/map"
+              className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-blue-200 hover:text-white transition-all"
+            >
+              <Map className="w-4 h-4" />
+              <span className="hidden sm:inline">מפה</span>
+            </Link>
           </div>
         </div>
       </header>
