@@ -24,7 +24,7 @@ export default function ArchitectView() {
     setSaving(app.id);
     await base44.entities.ClosureApplication.update(app.id, {
       status,
-      notes: notes[app.id] ?? app.notes ?? '',
+      notes: notes[app.id] !== undefined ? notes[app.id] : (app.notes || ''),
     });
     setSaving(null);
     setExpanded(null);
@@ -46,7 +46,7 @@ export default function ArchitectView() {
         <h2 className="text-2xl font-bold text-gray-800">לוח בקרה — בודק עירייה</h2>
         <div className="flex gap-2 flex-wrap">
           {[
-            { val: 'pending_review', label: 'ממתינות' },
+            { val: 'pending_review', label: 'ממתינות לבדיקה' },
             { val: 'all', label: 'הכל' },
             { val: 'approved', label: 'מאושרות' },
             { val: 'rejected', label: 'נדחות' },
@@ -64,11 +64,11 @@ export default function ArchitectView() {
         </div>
       </div>
 
-      {/* Stats — clickable */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {stats.map(s => (
           <button
-            key={s.label}
+            key={s.val}
             onClick={() => setFilter(s.val)}
             className={`${s.bg} rounded-xl p-4 text-center transition-all hover:opacity-80 ${filter === s.val ? 'ring-2 ring-offset-1 ring-blue-400' : ''}`}
           >
@@ -86,54 +86,62 @@ export default function ArchitectView() {
         <div className="space-y-4">
           {filtered.map(app => (
             <div key={app.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              {/* Row header */}
               <div
-                className="p-5 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                className="p-5 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition"
                 onClick={() => setExpanded(expanded === app.id ? null : app.id)}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-w-0">
                   <StatusBadge status={app.status} />
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="font-bold text-gray-800">{app.business}</h3>
-                    <p className="text-sm text-gray-500">{app.address} · {app.application_id}</p>
+                    <p className="text-sm text-gray-500 truncate">{app.address} · {app.application_id}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400 hidden sm:block">{app.type === 'type1' ? 'עונתי' : 'קבוע'} · {app.area} מ״ר</span>
-                  {expanded === app.id ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-xs text-gray-400 hidden sm:block">
+                    {app.type === 'type1' ? 'עונתי' : 'קבוע'} · {app.area} מ״ר
+                  </span>
+                  {expanded === app.id
+                    ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                    : <ChevronDown className="w-4 h-4 text-gray-400" />
+                  }
                 </div>
               </div>
 
+              {/* Expanded details */}
               {expanded === app.id && (
                 <div className="border-t border-gray-100 p-5 space-y-5">
-                  {/* Details */}
+                  {/* Info grid */}
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div><span className="text-gray-500">בעל עסק:</span> <span className="font-medium">{app.owner}</span></div>
-                    <div><span className="text-gray-500">טלפון:</span> <span className="font-medium">{app.phone}</span></div>
-                    <div><span className="text-gray-500">דוא״ל:</span> <span className="font-medium">{app.email}</span></div>
-                    <div><span className="text-gray-500">שטח:</span> <span className="font-medium">{app.area} מ״ר</span></div>
+                    <div><span className="text-gray-500">בעל עסק:</span> <strong>{app.owner}</strong></div>
+                    <div><span className="text-gray-500">טלפון:</span> <strong>{app.phone}</strong></div>
+                    <div className="col-span-2"><span className="text-gray-500">דוא״ל:</span> <strong>{app.email}</strong></div>
+                    <div><span className="text-gray-500">שטח:</span> <strong>{app.area} מ״ר</strong></div>
+                    <div><span className="text-gray-500">סוג:</span> <strong>{app.type === 'type1' ? 'סגירה עונתית' : 'מבנה קבוע'}</strong></div>
                     {app.lat && app.lng && (
-                      <div className="col-span-2 flex items-center gap-1 text-gray-500">
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>מיקום: {Number(app.lat).toFixed(5)}, {Number(app.lng).toFixed(5)}</span>
+                      <div className="col-span-2 flex items-center gap-2 text-gray-500">
+                        <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>{Number(app.lat).toFixed(5)}, {Number(app.lng).toFixed(5)}</span>
                         <a
                           href={`https://www.google.com/maps?q=${app.lat},${app.lng}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline text-xs mr-2"
+                          className="text-blue-600 hover:underline text-xs"
                         >
-                          פתח במפות Google
+                          פתח במפות ↗
                         </a>
                       </div>
                     )}
                   </div>
 
-                  {/* Checklist */}
+                  {/* Checklist summary */}
                   {app.checklist && Object.keys(app.checklist).length > 0 && (
                     <div>
                       <p className="text-sm font-medium text-gray-700 mb-2">תנאים שהוצהרו:</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      <div className="flex flex-wrap gap-1.5">
                         {Object.entries(app.checklist).map(([k, v]) => (
-                          <span key={k} className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${v ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                          <span key={k} className={`text-xs px-2 py-0.5 rounded-full ${v ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                             {v ? '✓' : '✗'} {k}
                           </span>
                         ))}
@@ -141,20 +149,13 @@ export default function ArchitectView() {
                     </div>
                   )}
 
-                  {/* Previous architect notes */}
-                  {app.notes && !(notes[app.id] !== undefined) && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800">
-                      <strong>הערה קודמת:</strong> {app.notes}
-                    </div>
-                  )}
-
-                  {/* Notes input */}
+                  {/* Notes */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                       <MessageSquare className="w-4 h-4" /> הערות לבעל העסק
                     </label>
                     <textarea
-                      value={notes[app.id] ?? app.notes ?? ''}
+                      value={notes[app.id] !== undefined ? notes[app.id] : (app.notes || '')}
                       onChange={e => setNotes(n => ({ ...n, [app.id]: e.target.value }))}
                       rows={3}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
@@ -162,7 +163,7 @@ export default function ArchitectView() {
                     />
                   </div>
 
-                  {/* Actions */}
+                  {/* Action buttons */}
                   <div className="flex flex-wrap gap-3 justify-end">
                     {app.status !== 'pending_review' && (
                       <button
@@ -177,7 +178,7 @@ export default function ArchitectView() {
                       <button
                         onClick={() => handleDecision(app, 'rejected')}
                         disabled={saving === app.id}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 text-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 text-sm font-medium"
                       >
                         <XCircle className="w-4 h-4" /> דחה בקשה
                       </button>
@@ -186,9 +187,10 @@ export default function ArchitectView() {
                       <button
                         onClick={() => handleDecision(app, 'approved')}
                         disabled={saving === app.id}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                        className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
                       >
-                        <CheckCircle className="w-4 h-4" /> אשר בקשה
+                        <CheckCircle className="w-4 h-4" />
+                        {saving === app.id ? 'שומר...' : 'אשר בקשה'}
                       </button>
                     )}
                   </div>

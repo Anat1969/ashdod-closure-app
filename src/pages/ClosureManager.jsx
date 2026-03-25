@@ -15,39 +15,43 @@ const ROLES = [
 export default function ClosureManager() {
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === 'admin';
-  const defaultRole = isAdmin ? 'architect' : 'owner';
-  const [activeRole, setActiveRole] = useState(defaultRole);
+  const [activeRole, setActiveRole] = useState(null);
 
   useEffect(() => {
     setActiveRole(isAdmin ? 'architect' : 'owner');
   }, [isAdmin]);
 
+  if (!activeRole) return (
+    <div className="fixed inset-0 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-800 rounded-full animate-spin" />
+    </div>
+  );
+
   return (
     <div dir="rtl" className="min-h-screen bg-gray-50 font-sans">
-      {/* Header */}
       <header className="bg-blue-900 text-white shadow-lg">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <img src="https://upload.wikimedia.org/wikipedia/he/thumb/a/a9/Ashdod_COA.svg/120px-Ashdod_COA.svg.png" alt="עיריית אשדוד" className="h-12 w-12 object-contain bg-white rounded-full p-1" />
+            <img
+              src="https://upload.wikimedia.org/wikipedia/he/thumb/a/a9/Ashdod_COA.svg/120px-Ashdod_COA.svg.png"
+              alt="עיריית אשדוד"
+              className="h-12 w-12 object-contain bg-white rounded-full p-1"
+            />
             <div>
               <h1 className="text-xl font-bold">מנהל סגירות</h1>
               <p className="text-blue-200 text-sm">עיריית אשדוד — היתרי סגירה עונתיים וחורף</p>
             </div>
           </div>
-          {/* Role Switcher */}
           <div className="flex gap-1 bg-blue-800 rounded-lg p-1">
             {ROLES.map(role => {
               const Icon = role.icon;
-              const show = role.id !== 'architect' || isAdmin;
-              if (!show) return null;
+              if (role.id === 'architect' && !isAdmin) return null;
               return (
                 <button
                   key={role.id}
                   onClick={() => setActiveRole(role.id)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeRole === role.id
-                      ? 'bg-white text-blue-900'
-                      : 'text-blue-200 hover:text-white'
+                    activeRole === role.id ? 'bg-white text-blue-900' : 'text-blue-200 hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -66,14 +70,13 @@ export default function ClosureManager() {
         </div>
       </header>
 
-      {/* Content */}
       <main className="max-w-6xl mx-auto px-4 py-6">
         {activeRole === 'owner' && <BusinessOwnerView />}
         {activeRole === 'architect' && isAdmin && <ArchitectView />}
-        {activeRole === 'resident' && <ResidentView />}
         {activeRole === 'architect' && !isAdmin && (
           <div className="text-center py-20 text-gray-500">גישה מוגבלת לאדריכל העיר בלבד</div>
         )}
+        {activeRole === 'resident' && <ResidentView />}
       </main>
     </div>
   );

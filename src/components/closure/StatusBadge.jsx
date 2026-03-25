@@ -7,6 +7,6 @@ export default function StatusBadge({ status }) {
   };
   const { label, cls } = map[status] || { label: status, cls: 'bg-gray-100 text-gray-600' };
   return (
-    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${cls}`}>{label}</span>
+    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${cls}`}>{label}</span>
   );
 }

@@ -22,10 +22,11 @@ export default function MapPicker({ lat, lng, onSelect }) {
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">
-        מיקום על המפה <span className="text-gray-400 font-normal">(לחץ על המפה לסימון המיקום)</span>
+        מיקום על המפה{' '}
+        <span className="text-gray-400 font-normal">(לחץ על המפה לסימון המיקום)</span>
       </label>
       <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: 220 }}>
-        <MapContainer center={pos || ASHDOD_CENTER} zoom={14} className="w-full h-full" zoomControl={true}>
+        <MapContainer center={pos || ASHDOD_CENTER} zoom={14} className="w-full h-full">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -79,7 +79,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={onCancel} className="text-gray-500 hover:text-gray-700">→ חזרה</button>
+        <button onClick={onCancel} className="text-blue-600 hover:text-blue-800 text-sm font-medium">→ חזרה</button>
         <h2 className="text-xl font-bold text-gray-800">{isEdit ? 'עריכה והגשה מחדש' : 'הגשת בקשה חדשה'}</h2>
       </div>
 
@@ -156,7 +156,9 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
 
         {step === 2 && (
           <div>
-            <h3 className="font-bold text-gray-700 mb-2">רשימת תנאים — {form.type === 'type1' ? 'סגירה עונתית' : 'מבנה קבוע'}</h3>
+            <h3 className="font-bold text-gray-700 mb-2">
+              רשימת תנאים — {form.type === 'type1' ? 'סגירה עונתית' : 'מבנה קבוע'}
+            </h3>
             <p className="text-sm text-gray-500 mb-4">יש לאשר את עמידת העסק בכל התנאים הבאים:</p>
             <div className="space-y-3">
               {checklist.map(item => (
@@ -174,7 +176,9 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
               ))}
             </div>
             {!allChecked && (
-              <p className="text-amber-600 text-sm mt-4 bg-amber-50 px-3 py-2 rounded-lg">יש לאשר את כל התנאים כדי להמשיך</p>
+              <p className="text-amber-600 text-sm mt-4 bg-amber-50 px-3 py-2 rounded-lg">
+                יש לאשר את כל התנאים כדי להמשיך
+              </p>
             )}
           </div>
         )}
@@ -183,7 +187,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
           <div className="text-center py-8">
             <Send className="w-16 h-16 text-blue-600 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-800 mb-2">מוכן להגשה</h3>
-            <p className="text-gray-500 mb-6">הבקשה תועבר לאדריכל העיר לבדיקה ואישור</p>
+            <p className="text-gray-500 mb-6">הבקשה תועבר לבודק העירייה לבדיקה ואישור</p>
             <div className="bg-gray-50 rounded-xl p-4 text-right mb-6 space-y-2 text-sm text-gray-600">
               <p><strong>עסק:</strong> {form.business}</p>
               <p><strong>כתובת:</strong> {form.address}</p>
@@ -196,7 +200,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
         )}
       </div>
 
-      {/* Nav Buttons */}
+      {/* Navigation */}
       <div className="flex justify-between mt-6">
         <button
           onClick={() => step > 0 ? setStep(s => s - 1) : onCancel()}
