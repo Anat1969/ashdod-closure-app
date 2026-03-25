@@ -37,7 +37,7 @@ export default function BusinessOwnerView() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">הבקשות שלי</h2>
+        <h2 className="text-2xl font-bold text-gray-800">מסלול בעל עסק — הבקשותי</h2>
         <button
           onClick={openNew}
           className="flex items-center gap-2 bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm font-medium"

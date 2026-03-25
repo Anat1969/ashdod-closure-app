@@ -43,7 +43,7 @@ export default function ArchitectView() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h2 className="text-2xl font-bold text-gray-800">לוח בקרה — בודק עירייה</h2>
+        <h2 className="text-2xl font-bold text-gray-800">מסלול עירייה — בדיקת בקשות</h2>
         <div className="flex gap-2 flex-wrap">
           {[
             { val: 'pending_review', label: 'ממתינות לבדיקה' },

@@ -7,8 +7,8 @@ import { Building2, HardHat, Users, Map } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ROLES = [
-  { id: 'owner', label: 'בעל עסק', icon: Building2 },
-  { id: 'architect', label: 'אדריכל העיר', icon: HardHat },
+  { id: 'owner', label: 'מסלול בעל עסק', icon: Building2 },
+  { id: 'architect', label: 'מסלול עירייה', icon: HardHat },
   { id: 'resident', label: 'תושב', icon: Users },
 ];
 
@@ -38,8 +38,8 @@ export default function ClosureManager() {
               className="h-12 w-12 object-contain bg-white rounded-full p-1"
             />
             <div>
-              <h1 className="text-xl font-bold">מנהל סגירות</h1>
-              <p className="text-blue-200 text-sm">עיריית אשדוד — היתרי סגירה עונתיים וחורף</p>
+              <h1 className="text-xl font-bold">מנהל סגירות — עיריית אשדוד</h1>
+              <p className="text-blue-200 text-sm">הגשת בקשות והיתרי סגירה עונתיים וחורף</p>
             </div>
           </div>
           <div className="flex gap-1 bg-blue-800 rounded-lg p-1">
