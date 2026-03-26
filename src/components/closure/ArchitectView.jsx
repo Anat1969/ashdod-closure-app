@@ -176,8 +176,8 @@ export default function ArchitectView() {
         <div className="flex flex-wrap gap-3 items-center">
           <label className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:bg-blue-100 transition text-sm text-blue-700">
             <Upload className="w-4 h-4" />
-            {uploading ? 'מעלה...' : uploadedFile ? `קובץ נבחר: ${uploadedFile.name}` : 'בחר קובץ (PDF/Word/תמונה)'}
-            <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+            {uploading ? 'מעלה...' : uploadedFile ? `קובץ נבחר: ${uploadedFile.name}` : 'בחר קובץ (PDF/Word/Excel/תמונה)'}
+            <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.xlsx,.xls,.csv" className="hidden" onChange={handleFileUpload} disabled={uploading} />
           </label>
           {uploadedFile && (
             <>
