@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from './StatusBadge';
 
-import { CheckCircle, XCircle, Clock, FileText, Search, SlidersHorizontal } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Search, SlidersHorizontal, Upload, Loader2 } from 'lucide-react';
 
 const STATUSES = [
   { val: 'all', label: 'הכל' },
@@ -26,6 +26,10 @@ export default function ArchitectView() {
   const [filter, setFilter] = useState('pending_review');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('-created_date');
+  const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [extractedData, setExtractedData] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -35,6 +39,87 @@ export default function ArchitectView() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setUploadedFile({ name: file.name, url: file_url });
+      setExtractedData(null);
+    } catch (err) {
+      alert('שגיאה בהעלאת הקובץ');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleExtract = async () => {
+    if (!uploadedFile) return;
+    setExtracting(true);
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `חלץ את הנתונים הבאים מהמסמך:
+1. שם העסק
+2. הכתובת
+3. סוג העסק (לדוגמה: מסעדה, בית קפה, מזנון)
+4. סוג הסגירה המבוקשת (סגירת חורף/פרגוד או סגירה עונתית/מבנה קבוע)
+
+החזר אך ורק JSON במבנה הבא:
+{
+  "business": "שם העסק",
+  "address": "הכתובת המלאה",
+  "business_type": "סוג העסק",
+  "closure_type": "type1" או "type2" (type1 = סגירת חורף/פרגוד, type2 = סגירה עונתית)
+}`,
+        file_urls: uploadedFile.url,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            business: { type: 'string' },
+            address: { type: 'string' },
+            business_type: { type: 'string' },
+            closure_type: { type: 'string', enum: ['type1', 'type2'] },
+          },
+          required: ['business', 'address', 'business_type', 'closure_type'],
+        },
+      });
+
+      setExtractedData(result);
+    } catch (err) {
+      alert('שגיאה בחילוץ נתונים: ' + err.message);
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const handleCreateApplications = async () => {
+    if (!extractedData) return;
+    try {
+      const newApp = {
+        business: extractedData.business,
+        address: extractedData.address,
+        business_type: extractedData.business_type,
+        type: extractedData.closure_type,
+        owner: '',
+        phone: '',
+        email: '',
+        area: 0,
+        status: 'pending_owner',
+        checklist: {},
+        submitted_at: new Date().toISOString(),
+        application_id: `ASH-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
+      };
+      await base44.entities.ClosureApplication.create(newApp);
+      alert('הבקשה נוצרה בהצלחה!');
+      setUploadedFile(null);
+      setExtractedData(null);
+      load();
+    } catch (err) {
+      alert('שגיאה ביצירת הבקשה: ' + err.message);
+    }
+  };
 
 
 
@@ -81,6 +166,50 @@ export default function ArchitectView() {
             </button>
           );
         })}
+      </div>
+
+      {/* File upload & extract section */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <Upload className="w-4 h-4" /> ייבוא בקשות ממסמך
+        </h3>
+        <div className="flex flex-wrap gap-3 items-center">
+          <label className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:bg-blue-100 transition text-sm text-blue-700">
+            <Upload className="w-4 h-4" />
+            {uploading ? 'מעלה...' : uploadedFile ? `קובץ נבחר: ${uploadedFile.name}` : 'בחר קובץ (PDF/Word/תמונה)'}
+            <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+          </label>
+          {uploadedFile && (
+            <>
+              <button
+                onClick={handleExtract}
+                disabled={extracting}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition text-sm font-medium disabled:opacity-50"
+              >
+                {extracting ? <><Loader2 className="w-4 h-4 animate-spin" /> מנתח...</> : 'חלץ נתונים'}
+              </button>
+              {extractedData && (
+                <button
+                  onClick={handleCreateApplications}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                >
+                  צור בקשה
+                </button>
+              )}
+            </>
+          )}
+        </div>
+        {extractedData && (
+          <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+            <p className="font-semibold text-green-800 mb-2">נתונים שחולצו:</p>
+            <div className="grid grid-cols-2 gap-2 text-green-700">
+              <div><span className="font-medium">עסק:</span> {extractedData.business}</div>
+              <div><span className="font-medium">כתובת:</span> {extractedData.address}</div>
+              <div><span className="font-medium">סוג עסק:</span> {extractedData.business_type}</div>
+              <div><span className="font-medium">סוג סגירה:</span> {extractedData.closure_type === 'type1' ? 'סגירת חורף/פרגוד' : 'סגירה עונתית'}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Filters row */}
