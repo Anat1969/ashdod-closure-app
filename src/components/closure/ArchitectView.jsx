@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from './StatusBadge';
 import ApplicationCard from './ApplicationCard';
@@ -19,12 +20,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function ArchitectView() {
-  const [apps, setApps] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('pending_review');
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('-created_date');
-  const [selected, setSelected] = useState(null);
+  const navigate = useNavigate();
 
   const load = async () => {
     setLoading(true);
@@ -35,11 +31,7 @@ export default function ArchitectView() {
 
   useEffect(() => { load(); }, []);
 
-  const handleStatusChange = async (app, newStatus, notes) => {
-    await base44.entities.ClosureApplication.update(app.id, { status: newStatus, notes });
-    setSelected(null);
-    load();
-  };
+
 
   const stats = [
     { label: 'ממתינות לבדיקה', count: apps.filter(a => a.status === 'pending_review').length, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', val: 'pending_review', icon: Clock },
@@ -131,8 +123,8 @@ export default function ArchitectView() {
           {filtered.map(app => (
             <button
               key={app.id}
-              onClick={() => setSelected(app)}
-              className={`w-full text-right bg-white rounded-xl border p-4 flex items-center gap-4 hover:border-blue-300 hover:shadow-sm transition-all ${selected?.id === app.id ? 'border-blue-400 shadow-sm' : 'border-gray-100'}`}
+              onClick={() => navigate(`/architect/${app.id}`)}
+              className="w-full text-right bg-white rounded-xl border p-4 flex items-center gap-4 hover:border-blue-300 hover:shadow-sm transition-all border-gray-100"
             >
               <StatusBadge status={app.status} />
               <div className="flex-1 min-w-0">
@@ -148,14 +140,7 @@ export default function ArchitectView() {
         </div>
       )}
 
-      {/* Application card modal */}
-      {selected && (
-        <ApplicationCard
-          app={selected}
-          onClose={() => setSelected(null)}
-          onStatusChange={handleStatusChange}
-        />
-      )}
+
     </div>
   );
 }

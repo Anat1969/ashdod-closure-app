@@ -11,6 +11,7 @@ import OwnerPage from './pages/OwnerPage';
 import ArchitectPage from './pages/ArchitectPage';
 import MapView from './pages/MapView';
 import ResidentsPage from './pages/ResidentsPage';
+import ApplicationDetailPage from './pages/ApplicationDetailPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -44,6 +45,7 @@ const AuthenticatedApp = () => {
         <Route path="/architect" element={<ArchitectPage />} />
         <Route path="/map" element={<MapView />} />
         <Route path="/residents" element={<ResidentsPage />} />
+        <Route path="/architect/:id" element={<ApplicationDetailPage />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
