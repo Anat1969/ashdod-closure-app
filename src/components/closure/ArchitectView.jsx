@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from './StatusBadge';
-import ApplicationCard from './ApplicationCard';
+
 import { CheckCircle, XCircle, Clock, FileText, Search, SlidersHorizontal } from 'lucide-react';
 
 const STATUSES = [
@@ -21,6 +21,11 @@ const SORT_OPTIONS = [
 
 export default function ArchitectView() {
   const navigate = useNavigate();
+  const [apps, setApps] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('pending_review');
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('-created_date');
 
   const load = async () => {
     setLoading(true);
