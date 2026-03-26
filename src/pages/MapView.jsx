@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -65,6 +66,7 @@ const STATUS_LABEL = {
 };
 
 export default function MapView() {
+  const navigate = useNavigate();
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -187,6 +189,12 @@ export default function MapView() {
                       {app.phone && (
                         <div className="text-xs text-gray-500 mt-1">📞 {app.phone}</div>
                       )}
+                      <button
+                        onClick={() => navigate(`/architect/${app.id}`)}
+                        className="mt-2 w-full text-center text-xs bg-blue-700 text-white px-3 py-1.5 rounded-lg hover:bg-blue-800 transition"
+                      >
+                        צפה בבקשה
+                      </button>
                     </div>
                   </Popup>
                 </Marker>
