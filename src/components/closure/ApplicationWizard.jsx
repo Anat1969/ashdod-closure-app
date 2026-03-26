@@ -306,47 +306,57 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
         {step === 1 && form.type === 'type1' && (
           <div className="space-y-5">
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-2">
-              <h3 className="font-bold text-blue-900 text-base mb-0.5">טופס בקשה לפרגוד — חלק א׳: פרטי הבקשה</h3>
+              <h3 className="font-bold text-blue-900 text-base mb-0.5">טופס בקשה לפרגוד</h3>
               <p className="text-xs text-blue-600">מחלקת פיקוח עירוני · עיריית אשדוד</p>
             </div>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
+            {/* פרטי העסק */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700">פרטי העסק</p>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="שם העסק" value={form.business} onChange={v => update('business', v)} />
                 <Field label="שם בעל העסק" value={form.owner} onChange={v => update('owner', v)} />
-                <Field label="כתובת מלאה" value={form.address} onChange={v => update('address', v)} />
+                <Field label="כתובת" value={form.address} onChange={v => update('address', v)} />
                 <Field label="טלפון" type="tel" value={form.phone} onChange={v => update('phone', v)} />
                 <Field label="דוא״ל" type="email" value={form.email} onChange={v => update('email', v)} />
               </div>
               <MapPicker lat={form.lat} lng={form.lng} onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="תיק רישוי" value={form.license_file} onChange={v => update('license_file', v)} />
-              <Field label="סוג העסק" value={form.business_type} onChange={v => update('business_type', v)} />
-              <Field label="מצב רישוי" value={form.license_status} onChange={v => update('license_status', v)} />
+            {/* פרטי הרישוי ותקופת הסגירה */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-700">פרטי הרישוי</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="תיק רישוי" value={form.license_file} onChange={v => update('license_file', v)} />
+                <Field label="סוג העסק" value={form.business_type} onChange={v => update('business_type', v)} />
+                <Field label="מצב רישוי" value={form.license_status} onChange={v => update('license_status', v)} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="תקופה — מתאריך" type="date" value={form.period_from} onChange={v => update('period_from', v)} />
+                <Field label="תקופה — עד תאריך" type="date" value={form.period_to} onChange={v => update('period_to', v)} />
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="תקופה — מתאריך" type="date" value={form.period_from} onChange={v => update('period_from', v)} />
-              <Field label="תקופה — עד תאריך" type="date" value={form.period_to} onChange={v => update('period_to', v)} />
-            </div>
-            <div className="border-t border-gray-200 pt-4">
-              <p className="text-sm font-semibold text-gray-600 mb-3">פרטי עורך הבקשה</p>
+
+            {/* פרטי עורך הבקשה */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-700">פרטי עורך הבקשה</p>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="שם" value={form.applicant_name} onChange={v => update('applicant_name', v)} />
                 <Field label="נייד" type="tel" value={form.applicant_phone} onChange={v => update('applicant_phone', v)} />
                 <Field label="מס׳ רישיון" value={form.applicant_license} onChange={v => update('applicant_license', v)} />
               </div>
             </div>
+
+            {/* הערות */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">הערות</label>
               <textarea value={form.form_notes} onChange={e => update('form_notes', e.target.value)} rows={2}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
             </div>
 
+            {/* הצהרות */}
             <div className="border-t border-gray-200 pt-5">
-              <h4 className="font-bold text-gray-700 mb-1">חלק ב׳ — הצהרת בעל העסק</h4>
+              <h4 className="font-bold text-gray-700 mb-1">הצהרת בעל העסק</h4>
               <p className="text-sm text-gray-500 mb-4">יש לסמן את כל ההצהרות הבאות כדי להמשיך:</p>
               <div className="space-y-3">
                 {DECLARATIONS_TYPE1.map(d => (
@@ -367,58 +377,65 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
               <p className="text-xs text-purple-600">מחלקת נכסים · עיריית אשדוד</p>
             </div>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
+            {/* פרטי העסק ומיקום */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700">פרטי העסק</p>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="שם העסק" value={form.business} onChange={v => update('business', v)} />
                 <Field label="שם בעל העסק" value={form.owner} onChange={v => update('owner', v)} />
-                <Field label="כתובת מלאה" value={form.address} onChange={v => update('address', v)} />
+                <Field label="כתובת" value={form.address} onChange={v => update('address', v)} />
                 <Field label="טלפון" type="tel" value={form.phone} onChange={v => update('phone', v)} />
                 <Field label="דוא״ל" type="email" value={form.email} onChange={v => update('email', v)} />
               </div>
               <MapPicker lat={form.lat} lng={form.lng} onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
             </div>
 
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">סוג נכס מבוקש</p>
-              <div className="flex gap-4">
-                {[{ val: 'private', label: 'שטח פרטי' }, { val: 'public', label: 'שטח ציבורי' }].map(o => (
-                  <label key={o.val} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 cursor-pointer transition-all ${form.property_type === o.val ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-purple-300'}`}>
-                    <input type="radio" name="property_type" value={o.val} checked={form.property_type === o.val} onChange={() => update('property_type', o.val)} className="accent-purple-600" />
-                    <span className="text-sm font-medium">{o.label}</span>
-                  </label>
-                ))}
+            {/* פרטי החברה */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-700">פרטי החברה</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="שם החברה" value={form.company_name} onChange={v => update('company_name', v)} />
+                <Field label="ח.פ" value={form.company_id} onChange={v => update('company_id', v)} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">סוג נכס מבוקש</p>
+                <div className="flex gap-4">
+                  {[{ val: 'private', label: 'שטח פרטי' }, { val: 'public', label: 'שטח ציבורי' }].map(o => (
+                    <label key={o.val} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 cursor-pointer transition-all ${form.property_type === o.val ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-purple-300'}`}>
+                      <input type="radio" name="property_type" value={o.val} checked={form.property_type === o.val} onChange={() => update('property_type', o.val)} className="accent-purple-600" />
+                      <span className="text-sm font-medium">{o.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="שם החברה" value={form.company_name} onChange={v => update('company_name', v)} />
-              <Field label="ח.פ" value={form.company_id} onChange={v => update('company_id', v)} />
-            </div>
-            <div className="border-t border-gray-100 pt-3">
-              <p className="text-sm font-semibold text-gray-600 mb-3">פרטי המקרקעין</p>
+            {/* פרטי המקרקעין */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-700">פרטי המקרקעין</p>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="גוש" value={form.block} onChange={v => update('block', v)} />
                 <Field label="חלקה" value={form.parcel} onChange={v => update('parcel', v)} />
                 <Field label="כתובת הנכס" value={form.property_address} onChange={v => update('property_address', v)} />
               </div>
-              <MapPicker
-                lat={form.property_lat}
-                lng={form.property_lng}
-                onSelect={(lat, lng) => setForm(f => ({ ...f, property_lat: lat, property_lng: lng }))}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="תקופת השימוש המבוקשת" value={form.usage_period} onChange={v => update('usage_period', v)} placeholder="לדוגמה: שנה אחת" />
-              <Field label="אופציה" value={form.usage_option} onChange={v => update('usage_option', v)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">מטרת השימוש</label>
-              <textarea value={form.usage_purpose} onChange={e => update('usage_purpose', e.target.value)} rows={2}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
             </div>
 
-            <div className="border-t border-gray-200 pt-5">
+            {/* תנאי השימוש */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-700">תנאי השימוש</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="תקופת השימוש המבוקשת" value={form.usage_period} onChange={v => update('usage_period', v)} placeholder="לדוגמה: שנה אחת" />
+                <Field label="אופציה" value={form.usage_option} onChange={v => update('usage_option', v)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">מטרת השימוש</label>
+                <textarea value={form.usage_purpose} onChange={e => update('usage_purpose', e.target.value)} rows={2}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              </div>
+            </div>
+
+            {/* מסמכים נדרשים */}
+            <div className="border-t border-gray-200 pt-4">
               <h4 className="font-bold text-gray-700 mb-1">מסמכים נדרשים לצירוף</h4>
               <p className="text-sm text-gray-500 mb-4">סמן את המסמכים הקיימים / המוכנים לצירוף והעלה את הקובץ:</p>
               <div className="space-y-3">
