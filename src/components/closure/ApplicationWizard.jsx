@@ -67,17 +67,45 @@ function Field({ label, value, onChange, type = 'text', placeholder = '' }) {
   );
 }
 
-function CheckItem({ id, text, checked, onChange }) {
+function CheckItem({ id, text, checked, onChange, fileUrl, onFileChange }) {
+  const [uploading, setUploading] = useState(false);
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const url = await uploadFile(file);
+    onFileChange && onFileChange(id, url);
+    setUploading(false);
+  };
   return (
-    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${checked ? 'border-green-300 bg-green-50' : 'border-gray-200 hover:border-blue-200'}`}>
-      <input
-        type="checkbox"
-        checked={!!checked}
-        onChange={() => onChange(id)}
-        className="mt-0.5 w-4 h-4 accent-green-600"
-      />
-      <span className="text-sm text-gray-700">{text}</span>
-    </label>
+    <div className={`p-3 rounded-lg border transition-all ${checked ? 'border-green-300 bg-green-50' : 'border-gray-200 hover:border-blue-200'}`}>
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={!!checked}
+          onChange={() => onChange(id)}
+          className="mt-0.5 w-4 h-4 accent-green-600"
+        />
+        <span className="text-sm text-gray-700 flex-1">{text}</span>
+      </label>
+      {onFileChange && (
+        <div className="mt-2 mr-7">
+          {fileUrl ? (
+            <div className="flex items-center gap-2">
+              <a href={fileUrl} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-blue-600 underline truncate max-w-[200px]">קובץ מצורף ✓</a>
+              <button onClick={() => onFileChange(id, null)} className="text-red-400 hover:text-red-600 text-xs">הסר</button>
+            </div>
+          ) : (
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-400 hover:text-blue-600 transition">
+              <Upload className="w-3.5 h-3.5" />
+              {uploading ? 'מעלה...' : 'העלה מסמך'}
+              <input type="file" className="hidden" disabled={uploading} onChange={handleFile} />
+            </label>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -385,10 +413,18 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
 
             <div className="border-t border-gray-200 pt-5">
               <h4 className="font-bold text-gray-700 mb-1">מסמכים נדרשים לצירוף</h4>
-              <p className="text-sm text-gray-500 mb-4">סמן את המסמכים הקיימים / המוכנים לצירוף:</p>
+              <p className="text-sm text-gray-500 mb-4">סמן את המסמכים הקיימים / המוכנים לצירוף והעלה את הקובץ:</p>
               <div className="space-y-3">
                 {DOCUMENTS_TYPE2.map(d => (
-                  <CheckItem key={d.id} id={d.id} text={d.text} checked={form.docs_checklist[d.id]} onChange={toggleDoc} />
+                  <CheckItem
+                    key={d.id}
+                    id={d.id}
+                    text={d.text}
+                    checked={form.docs_checklist[d.id]}
+                    onChange={toggleDoc}
+                    fileUrl={form.docs_files?.[d.id] || null}
+                    onFileChange={(id, url) => setForm(f => ({ ...f, docs_files: { ...(f.docs_files || {}), [id]: url } }))}
+                  />
                 ))}
               </div>
             </div>
