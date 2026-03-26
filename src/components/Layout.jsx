@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { path: '/owner', label: 'מסלול בעל עסק', icon: Building2, adminOnly: false },
   { path: '/architect', label: 'מסלול עירייה', icon: HardHat, adminOnly: false },
   { path: '/map', label: 'מפת סגירות', icon: Map, adminOnly: false },
-  { path: '/residents', label: 'תושבים', icon: Users, adminOnly: false },
+  { path: '/residents', label: 'מסלול תושב', icon: Users, adminOnly: false },
 ];
 
 export default function Layout() {
