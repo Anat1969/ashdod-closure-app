@@ -204,6 +204,8 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
     block: application?.block || '',
     parcel: application?.parcel || '',
     property_address: application?.property_address || '',
+    property_lat: application?.property_lat || null,
+    property_lng: application?.property_lng || null,
     usage_period: application?.usage_period || '',
     usage_option: application?.usage_option || '',
     usage_purpose: application?.usage_purpose || '',
@@ -400,6 +402,11 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
                 <Field label="חלקה" value={form.parcel} onChange={v => update('parcel', v)} />
                 <Field label="כתובת הנכס" value={form.property_address} onChange={v => update('property_address', v)} />
               </div>
+              <MapPicker
+                lat={form.property_lat}
+                lng={form.property_lng}
+                onSelect={(lat, lng) => setForm(f => ({ ...f, property_lat: lat, property_lng: lng }))}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Field label="תקופת השימוש המבוקשת" value={form.usage_period} onChange={v => update('usage_period', v)} placeholder="לדוגמה: שנה אחת" />
