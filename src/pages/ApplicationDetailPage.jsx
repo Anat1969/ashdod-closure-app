@@ -118,38 +118,74 @@ export default function ApplicationDetailPage() {
     if (!currentApp.lat || !currentApp.lng) missingF.push('מיקום על המפה');
     if (!currentApp.description) missingF.push('תיאור הבקשה');
 
-    const statusLabel = { approved: 'מאושרת', rejected: 'נדחתה', pending_owner: 'ממתינה לתיקון', pending_review: 'בבדיקה' }[currentApp.status] || currentApp.status;
+    const statusLabel = { approved: 'אושרה', rejected: 'נדחתה', pending_owner: 'ממתינה לתיקון', pending_review: 'בבדיקה' }[currentApp.status] || currentApp.status;
+    const typeLabel = currentApp.type === 'type1' ? 'סגירת חורף / פרגוד' : 'סגירה עונתית';
+    const line = '═'.repeat(52);
+    const thin = '─'.repeat(52);
 
-    return `דוח בדיקה — ${currentApp.business} (${currentApp.application_id})
-תאריך: ${new Date().toLocaleDateString('he-IL')}
-סטטוס: ${statusLabel}
-סוג: ${currentApp.type === 'type1' ? 'סגירת חורף / פרגוד' : 'סגירה עונתית'}
-שטח: ${currentApp.area} מר
-כתובת: ${currentApp.address}
-
---- פרטי מגיש ---
-בעל עסק: ${currentApp.owner || 'לא מולא'}
-טלפון: ${currentApp.phone || 'לא מולא'}
-דואל: ${currentApp.email || 'לא מולא'}
-${currentApp.description ? `תיאור: ${currentApp.description}` : ''}
-
---- שדות חסרים ---
-${missingF.length === 0 ? 'כל השדות מולאו' : missingF.join('\n')}
-
---- תנאים שאושרו (${checked.length}/${checklist.length}) ---
-${checked.map(c => '✓ ' + c.text).join('\n')}
-
---- תנאים שלא אושרו ---
-${unchecked.length === 0 ? 'אין' : unchecked.map(c => '✗ ' + c.text).join('\n')}
-
---- מסמכים שהועלו ---
-${uploaded.length === 0 ? 'אין' : uploaded.map(d => '✓ ' + d.label).join('\n')}
-
---- מסמכים חסרים ---
-${missing.length === 0 ? 'אין' : missing.map(d => '✗ ' + d.label).join('\n')}
-
---- הערות הבודק ---
-${currentNotes || 'אין הערות'}`;
+    return [
+      line,
+      `         עיריית אשדוד — מחלקת פיקוח עירוני`,
+      `             דוח בדיקת בקשת סגירה`,
+      line,
+      `מספר בקשה : ${currentApp.application_id || 'לא צוין'}`,
+      `תאריך בדיקה: ${new Date().toLocaleDateString('he-IL', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+      `סטטוס    : ${statusLabel}`,
+      '',
+      thin,
+      `א. פרטי הבקשה`,
+      thin,
+      `שם העסק   : ${currentApp.business || 'לא מולא'}`,
+      `סוג סגירה  : ${typeLabel}`,
+      `שטח        : ${currentApp.area ? currentApp.area + ' מ"ר' : 'לא מולא'}`,
+      `כתובת     : ${currentApp.address || 'לא מולא'}`,
+      `מיקום      : ${currentApp.lat && currentApp.lng ? `${Number(currentApp.lat).toFixed(5)}, ${Number(currentApp.lng).toFixed(5)}` : 'לא סומן'}`,
+      currentApp.description ? `תיאור      : ${currentApp.description}` : `תיאור      : לא צוין`,
+      '',
+      thin,
+      `ב. פרטי בעל העסק`,
+      thin,
+      `שם           : ${currentApp.owner || 'לא מולא'}`,
+      `טלפון        : ${currentApp.phone || 'לא מולא'}`,
+      `דוא"ל        : ${currentApp.email || 'לא מולא'}`,
+      ...(currentApp.applicant_name ? [`עורך בקשה  : ${currentApp.applicant_name}${currentApp.applicant_phone ? ' | ' + currentApp.applicant_phone : ''}`] : []),
+      '',
+      thin,
+      `ג. שדות חסרים`,
+      thin,
+      missingF.length === 0
+        ? '✅ כל השדות מולאו כראוי'
+        : missingF.map(f => `⚠️  ${f}`).join('\n'),
+      '',
+      thin,
+      `ד. עמידת בתנאים (${checked.length}/${checklist.length})`,
+      thin,
+      checked.length > 0 ? checked.map(c => `✓  ${c.text}`).join('\n') : 'אין תנאים שאושרו',
+      '',
+      unchecked.length > 0 ? [
+        `תנאים שלא אושרו (${unchecked.length}):`,
+        ...unchecked.map(c => `✗  ${c.text}`)
+      ].join('\n') : '✅ כל התנאים אושרו',
+      '',
+      thin,
+      `ה. מסמכים שהועלו (${uploaded.length}/${DOCS_LABELS.length})`,
+      thin,
+      uploaded.length > 0 ? uploaded.map(d => `✓  ${d.label}`).join('\n') : 'לא הועלו מסמכים',
+      '',
+      missing.length > 0 ? [
+        `מסמכים חסרים (${missing.length}):`,
+        ...missing.map(d => `✗  ${d.label}`)
+      ].join('\n') : '✅ כל המסמכים הועלו',
+      '',
+      thin,
+      `ו. הערות הבודק`,
+      thin,
+      currentNotes || 'לא צוינו הערות.',
+      '',
+      line,
+      `הדוח נוצר במערכת ניהול סגירות — עיריית אשדוד`,
+      line,
+    ].join('\n');
   };
 
   const addHistory = (app, entry) => {
