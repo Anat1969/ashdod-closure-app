@@ -34,6 +34,9 @@ export default function ApplicationDetailPage() {
   const [planImage, setPlanImage] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [closureImage, setClosureImage] = useState(null);
+  const [uploadingClosure, setUploadingClosure] = useState(false);
+  const [dragOverClosure, setDragOverClosure] = useState(false);
 
   useEffect(() => {
     base44.entities.ClosureApplication.filter({ id })
@@ -42,6 +45,7 @@ export default function ApplicationDetailPage() {
         setApp(found);
         setNotes(found?.notes || '');
         setPlanImage(found?.plan_image || null);
+        setClosureImage(found?.closure_image || null);
         setLoading(false);
       });
   }, [id]);
@@ -53,6 +57,15 @@ export default function ApplicationDetailPage() {
     setPlanImage(file_url);
     await base44.entities.ClosureApplication.update(app.id, { plan_image: file_url });
     setUploadingImage(false);
+  };
+
+  const handleClosureImageUpload = async (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setUploadingClosure(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setClosureImage(file_url);
+    await base44.entities.ClosureApplication.update(app.id, { closure_image: file_url });
+    setUploadingClosure(false);
   };
 
   const handleDrop = (e) => {
@@ -206,6 +219,52 @@ export default function ApplicationDetailPage() {
                 <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                 <p className="text-sm text-gray-500">גרור תמונה לכאן או לחץ להעלאה</p>
                 <p className="text-xs text-gray-400 mt-1">PNG, JPG, PDF</p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Closure image upload */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+          <ImageIcon className="w-5 h-5 text-purple-500" />
+          תמונת הסגירה הרצוייה
+        </h3>
+        {closureImage ? (
+          <div className="relative">
+            <img src={closureImage} alt="תמונת סגירה" className="w-full rounded-xl border border-gray-200 max-h-80 object-contain" />
+            <button
+              onClick={() => { setClosureImage(null); base44.entities.ClosureApplication.update(app.id, { closure_image: null }); }}
+              className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-lg hover:bg-red-600"
+            >
+              הסר
+            </button>
+          </div>
+        ) : (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOverClosure(true); }}
+            onDragLeave={() => setDragOverClosure(false)}
+            onDrop={(e) => { e.preventDefault(); setDragOverClosure(false); handleClosureImageUpload(e.dataTransfer.files[0]); }}
+            className={`border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer ${
+              dragOverClosure ? 'border-purple-400 bg-purple-50' : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+            }`}
+            onClick={() => document.getElementById('closure-upload').click()}
+          >
+            <input
+              id="closure-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleClosureImageUpload(e.target.files[0])}
+            />
+            {uploadingClosure ? (
+              <div className="text-purple-500 text-sm">מעלה תמונה...</div>
+            ) : (
+              <>
+                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-sm text-gray-500">גרור תמונה לכאן או לחץ להעלאה</p>
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG</p>
               </>
             )}
           </div>
