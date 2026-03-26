@@ -173,7 +173,12 @@ export default function MapView() {
         </div>
 
         {/* Map */}
-        <div className="flex-1 relative">
+        <div className={`flex-1 relative ${editingApp ? 'cursor-crosshair' : ''}`}>
+          {editingApp && (
+            <div className="absolute top-4 right-4 z-[1000] bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
+              📍 לחץ על המפה לבחירת מיקום
+            </div>
+          )}
           <MapContainer
             center={ASHDOD_CENTER}
             zoom={13}
@@ -188,7 +193,20 @@ export default function MapView() {
             {flyTo && <FlyTo coords={flyTo} key={flyTo.join(',')} />}
             {editingApp && tempCoords && (
               <Marker position={tempCoords}>
-                <Popup>מיקום נבחר</Popup>
+                <Popup>
+                  <div className="text-right" dir="rtl">
+                    <div className="font-bold mb-1">מיקום נבחר</div>
+                    <div className="text-xs text-gray-500 mb-2">
+                      {tempCoords[0].toFixed(5)}, {tempCoords[1].toFixed(5)}
+                    </div>
+                    <button
+                      onClick={handleSaveLocation}
+                      className="w-full bg-green-500 text-white px-3 py-1.5 rounded text-xs hover:bg-green-600"
+                    >
+                      ✓ שמור מיקום
+                    </button>
+                  </div>
+                </Popup>
               </Marker>
             )}
             {filtered.map(app => {
