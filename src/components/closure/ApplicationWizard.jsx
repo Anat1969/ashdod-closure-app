@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Upload, X, ImageIcon } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { ChevronRight, ChevronLeft, Send } from 'lucide-react';
 import MapPicker from './MapPicker';
@@ -26,7 +27,63 @@ const CHECKLIST_TYPE2 = [
   { id: 'c2_9', text: 'שלטי בטיחות מותקנים' },
 ];
 
-const STEPS = ['פרטי עסק', 'סוג סגירה', 'רשימת תנאים', 'אישור והגשה'];
+const STEPS = ['פרטי עסק', 'סוג סגירה', 'רשימת תנאים', 'מסמכים ותמונות', 'אישור והגשה'];
+
+async function uploadFile(file) {
+  const { file_url } = await base44.integrations.Core.UploadFile({ file });
+  return file_url;
+}
+
+function FileUpload({ label, value, onChange, multiple }) {
+  const [uploading, setUploading] = useState(false);
+  const handle = async (files) => {
+    setUploading(true);
+    if (multiple) {
+      const urls = await Promise.all([...files].map(uploadFile));
+      onChange([...(value || []), ...urls]);
+    } else {
+      const url = await uploadFile(files[0]);
+      onChange(url);
+    }
+    setUploading(false);
+  };
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      {multiple ? (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {(value || []).map((url, i) => (
+              <div key={i} className="relative">
+                <img src={url} className="w-20 h-20 object-cover rounded-lg border" />
+                <button onClick={() => onChange((value || []).filter((_, j) => j !== i))}
+                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"><X className="w-2.5 h-2.5" /></button>
+              </div>
+            ))}
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-gray-200 rounded-lg px-4 py-3 hover:border-blue-300 transition text-sm text-gray-500">
+            <Upload className="w-4 h-4" /> {uploading ? 'מעלה...' : 'הוסף תמונות'}
+            <input type="file" accept="image/*" multiple className="hidden" disabled={uploading} onChange={e => handle(e.target.files)} />
+          </label>
+        </div>
+      ) : (
+        <div>
+          {value ? (
+            <div className="relative inline-block">
+              <img src={value} className="w-full max-h-40 object-contain rounded-lg border" />
+              <button onClick={() => onChange(null)} className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"><X className="w-3 h-3" /></button>
+            </div>
+          ) : (
+            <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-gray-200 rounded-lg px-4 py-3 hover:border-blue-300 transition text-sm text-gray-500">
+              <Upload className="w-4 h-4" /> {uploading ? 'מעלה...' : 'בחר קובץ'}
+              <input type="file" accept="image/*,application/pdf" className="hidden" disabled={uploading} onChange={e => handle(e.target.files)} />
+            </label>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ApplicationWizard({ application, onCancel, onSaved }) {
   const isEdit = !!application;
@@ -43,6 +100,13 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
     checklist: application?.checklist || {},
     lat: application?.lat || null,
     lng: application?.lng || null,
+    description: application?.description || '',
+    business_photo: application?.business_photo || null,
+    closure_simulation: application?.closure_simulation || null,
+    site_plan: application?.site_plan || null,
+    facade_plan: application?.facade_plan || null,
+    section_plan: application?.section_plan || null,
+    additional_photos: application?.additional_photos || [],
   });
 
   const checklist = form.type === 'type1' ? CHECKLIST_TYPE1 : CHECKLIST_TYPE2;
@@ -73,6 +137,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
     if (step === 0) return form.business && form.owner && form.address && form.phone && form.email && form.lat && form.lng;
     if (step === 1) return form.type && form.area;
     if (step === 2) return allChecked;
+    if (step === 3) return true; // documents optional
     return true;
   };
 
@@ -184,6 +249,28 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
         )}
 
         {step === 3 && (
+          <div className="space-y-5">
+            <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2"><ImageIcon className="w-5 h-5 text-blue-500" /> מסמכים ותמונות</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">תיאור הבקשה</label>
+              <textarea
+                value={form.description}
+                onChange={e => update('description', e.target.value)}
+                rows={3}
+                placeholder="תאר את הסגירה המבוקשת, מטרתה ופרטים נוספים..."
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+            <FileUpload label="תמונת העסק" value={form.business_photo} onChange={v => update('business_photo', v)} />
+            <FileUpload label="הדמיית הסגירה" value={form.closure_simulation} onChange={v => update('closure_simulation', v)} />
+            <FileUpload label="תוכנית העמדה בתוך תוכנית מדידה" value={form.site_plan} onChange={v => update('site_plan', v)} />
+            <FileUpload label="תוכנית חזית" value={form.facade_plan} onChange={v => update('facade_plan', v)} />
+            <FileUpload label="תוכנית חתך" value={form.section_plan} onChange={v => update('section_plan', v)} />
+            <FileUpload label="תמונות נוספות" value={form.additional_photos} onChange={v => update('additional_photos', v)} multiple />
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="text-center py-8">
             <Send className="w-16 h-16 text-blue-600 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-800 mb-2">מוכן להגשה</h3>
@@ -195,6 +282,8 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
               <p><strong>שטח:</strong> {form.area} מ״ר</p>
               <p><strong>מיקום:</strong> {form.lat ? `${Number(form.lat).toFixed(5)}, ${Number(form.lng).toFixed(5)}` : 'לא סומן'}</p>
               <p><strong>תנאים מאושרים:</strong> {checklist.filter(c => form.checklist[c.id]).length}/{checklist.length}</p>
+              {form.description && <p><strong>תיאור:</strong> {form.description}</p>}
+              <p><strong>מסמכים שהועלו:</strong> {[form.business_photo, form.closure_simulation, form.site_plan, form.facade_plan, form.section_plan].filter(Boolean).length + (form.additional_photos?.length || 0)} קבצים</p>
             </div>
           </div>
         )}
