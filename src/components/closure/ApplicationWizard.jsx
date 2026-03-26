@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, X, ImageIcon, ChevronRight, ChevronLeft, Send } from 'lucide-react';
+import { Upload, X, ImageIcon, ChevronRight, ChevronLeft, Send, Plus, Trash2, UtensilsCrossed } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import MapPicker from './MapPicker';
 
@@ -45,7 +45,7 @@ const DOCUMENTS_TYPE2 = [
   { id: 'doc2_5', text: 'טופס דיווח על ביצוע עבודה הפטורה מהיתר' },
 ];
 
-const STEPS = ['סוג סגירה', 'טופס רשמי', 'רשימת תנאים', 'מסמכים ותמונות', 'אישור והגשה'];
+const STEPS = ['סוג סגירה', 'טופס רשמי', 'רשימת תנאים', 'מסמכים ותמונות', 'תפריט עסק', 'אישור והגשה'];
 
 async function uploadFile(file) {
   const { file_url } = await base44.integrations.Core.UploadFile({ file });
@@ -160,6 +160,24 @@ function FileUpload({ label, value, onChange, multiple }) {
   );
 }
 
+function MenuImageUpload({ onUploaded }) {
+  const [uploading, setUploading] = useState(false);
+  const handle = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const url = await uploadFile(file);
+    onUploaded(url);
+    setUploading(false);
+  };
+  return (
+    <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-gray-200 rounded-lg px-4 py-2 hover:border-orange-300 transition text-sm text-gray-400 w-fit">
+      <Upload className="w-4 h-4" /> {uploading ? 'מעלה...' : 'העלה תמונה'}
+      <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handle} />
+    </label>
+  );
+}
+
 export default function ApplicationWizard({ application, onCancel, onSaved }) {
   const isEdit = !!application;
   const [step, setStep] = useState(0);
@@ -211,6 +229,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
     usage_option: application?.usage_option || '',
     usage_purpose: application?.usage_purpose || '',
     docs_checklist: application?.docs_checklist || {},
+    menu_items: application?.menu_items || [],
   });
 
   const checklist = form.type === 'type1' ? CHECKLIST_TYPE1 : CHECKLIST_TYPE2;
@@ -242,11 +261,20 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
     onSaved();
   };
 
+  const addMenuItem = () => setForm(f => ({ ...f, menu_items: [...(f.menu_items || []), { name: '', price: '', image: null }] }));
+  const updateMenuItem = (i, field, val) => setForm(f => {
+    const items = [...(f.menu_items || [])];
+    items[i] = { ...items[i], [field]: val };
+    return { ...f, menu_items: items };
+  });
+  const removeMenuItem = (i) => setForm(f => ({ ...f, menu_items: (f.menu_items || []).filter((_, j) => j !== i) }));
+
   const canNext = () => {
     if (step === 0) return form.type && form.area;
     if (step === 1) return form.business && form.owner && form.address && form.phone && form.email && allDeclared;
     if (step === 2) return allChecked;
     if (step === 3) return true;
+    if (step === 4) return true;
     return true;
   };
 
@@ -494,8 +522,49 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
           </div>
         )}
 
-        {/* Step 4: Summary */}
+        {/* Step 4: Menu */}
         {step === 4 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 mb-2">
+              <UtensilsCrossed className="w-5 h-5 text-orange-500" />
+              <h3 className="font-bold text-gray-700">תפריט העסק</h3>
+            </div>
+            <p className="text-sm text-gray-500">הוסף פריטים לתפריט העסק — שם, מחיר ותמונה (אופציונלי)</p>
+            <div className="space-y-4">
+              {(form.menu_items || []).map((item, i) => (
+                <div key={i} className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-600">פריט {i + 1}</span>
+                    <button onClick={() => removeMenuItem(i)} className="text-red-400 hover:text-red-600 transition">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="שם הפריט" value={item.name} onChange={v => updateMenuItem(i, 'name', v)} />
+                    <Field label="מחיר" value={item.price} onChange={v => updateMenuItem(i, 'price', v)} placeholder="לדוגמה: ₪45" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">תמונה</label>
+                    {item.image ? (
+                      <div className="relative inline-block">
+                        <img src={item.image} className="w-24 h-24 object-cover rounded-lg border" />
+                        <button onClick={() => updateMenuItem(i, 'image', null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"><X className="w-3 h-3" /></button>
+                      </div>
+                    ) : (
+                      <MenuImageUpload onUploaded={url => updateMenuItem(i, 'image', url)} />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={addMenuItem} className="flex items-center gap-2 w-full border-2 border-dashed border-orange-200 rounded-xl px-4 py-3 text-orange-600 hover:border-orange-400 hover:bg-orange-50 transition text-sm font-medium justify-center">
+              <Plus className="w-4 h-4" /> הוסף פריט לתפריט
+            </button>
+          </div>
+        )}
+
+        {/* Step 5: Summary */}
+        {step === 5 && (
           <div className="text-center py-8">
             <Send className="w-16 h-16 text-blue-600 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-800 mb-2">מוכן להגשה</h3>
@@ -509,6 +578,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
               <p><strong>תנאים מאושרים:</strong> {checklist.filter(c => form.checklist[c.id]).length}/{checklist.length}</p>
               {form.description && <p><strong>תיאור:</strong> {form.description}</p>}
               <p><strong>מסמכים שהועלו:</strong> {[form.business_photo, form.closure_simulation, form.site_plan, form.facade_plan, form.section_plan].filter(Boolean).length + (form.additional_photos?.length || 0)} קבצים</p>
+              <p><strong>פריטי תפריט:</strong> {(form.menu_items || []).length} פריטים</p>
             </div>
           </div>
         )}
