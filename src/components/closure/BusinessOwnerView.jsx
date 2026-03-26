@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import ApplicationWizard from './ApplicationWizard';
 import StatusBadge from './StatusBadge';
@@ -14,19 +15,21 @@ const PROCESS_STEPS = [
 ];
 
 export default function BusinessOwnerView() {
+  const { currentUser } = useAuth();
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState(null);
   const [editApp, setEditApp] = useState(null);
 
   const load = async () => {
+    if (!currentUser) return;
     setLoading(true);
-    const data = await base44.entities.ClosureApplication.list('-created_date', 50);
+    const data = await base44.entities.ClosureApplication.filter({ created_by: currentUser.email }, '-created_date', 50);
     setApps(data);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [currentUser]);
 
   const openNew = () => { setEditApp(null); setMode('new'); };
   const openEdit = (app) => { setEditApp(app); setMode('edit'); };
