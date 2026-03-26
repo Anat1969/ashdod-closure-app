@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import ApplicationWizard from './ApplicationWizard';
 import StatusBadge from './StatusBadge';
@@ -16,6 +17,7 @@ const PROCESS_STEPS = [
 
 export default function BusinessOwnerView() {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState(null);
@@ -112,6 +114,12 @@ export default function BusinessOwnerView() {
                 )}
               </div>
               <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => navigate(`/architect/${app.id}`)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
+                  <FileText className="w-3.5 h-3.5" />
+                  צפה בבקשה
+                </button>
                 {(app.status === 'pending_owner' || app.status === 'rejected') && (
                   <button
                     onClick={() => openEdit(app)}
