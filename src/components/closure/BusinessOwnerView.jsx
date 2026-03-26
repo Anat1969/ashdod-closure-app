@@ -2,12 +2,21 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import ApplicationWizard from './ApplicationWizard';
 import StatusBadge from './StatusBadge';
-import { Plus, FileText, RefreshCw } from 'lucide-react';
+import { Plus, FileText, RefreshCw, ClipboardList, FormInput, Layers, Upload, Clock, CheckCircle2 } from 'lucide-react';
+
+const PROCESS_STEPS = [
+  { icon: ClipboardList, label: 'פתיחת בקשה' },
+  { icon: FormInput, label: 'מילוי פרטים' },
+  { icon: Layers, label: 'בחירת סוג הסגירה' },
+  { icon: Upload, label: 'העלאת תוכניות' },
+  { icon: Clock, label: 'מעקב סטטוס' },
+  { icon: CheckCircle2, label: 'אישור העירייה' },
+];
 
 export default function BusinessOwnerView() {
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState(null); // null | 'new' | app-object
+  const [mode, setMode] = useState(null);
   const [editApp, setEditApp] = useState(null);
 
   const load = async () => {
@@ -17,48 +26,73 @@ export default function BusinessOwnerView() {
     setLoading(false);
   };
 
-  useEffect(() => {load();}, []);
+  useEffect(() => { load(); }, []);
 
-  const openNew = () => {setEditApp(null);setMode('new');};
-  const openEdit = (app) => {setEditApp(app);setMode('edit');};
-  const handleCancel = () => {setMode(null);setEditApp(null);};
-  const handleSaved = () => {setMode(null);setEditApp(null);load();};
+  const openNew = () => { setEditApp(null); setMode('new'); };
+  const openEdit = (app) => { setEditApp(app); setMode('edit'); };
+  const handleCancel = () => { setMode(null); setEditApp(null); };
+  const handleSaved = () => { setMode(null); setEditApp(null); load(); };
 
   if (mode) {
     return (
       <ApplicationWizard
         application={editApp}
         onCancel={handleCancel}
-        onSaved={handleSaved} />);
-
-
+        onSaved={handleSaved} />
+    );
   }
 
   return (
     <div>
+      {/* Process Steps Banner */}
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6">
+        <h2 className="text-xl font-bold text-blue-900 mb-4">מסלול בעל עסק — שלבי התהליך</h2>
+        <div className="flex flex-wrap gap-2 items-center">
+          {PROCESS_STEPS.map((step, i) => {
+            const Icon = step.icon;
+            const isLast = i === PROCESS_STEPS.length - 1;
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${
+                  isLast
+                    ? 'bg-green-100 text-green-700 border border-green-200'
+                    : 'bg-white text-blue-700 border border-blue-200'
+                }`}>
+                  <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold text-white ${
+                    isLast ? 'bg-green-500' : 'bg-blue-500'
+                  }`}>{i + 1}</span>
+                  <Icon className="w-4 h-4" />
+                  {step.label}
+                </div>
+                {!isLast && <span className="text-blue-300 text-lg">←</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">מסלול בעל עסק </h2>
+        <h2 className="text-2xl font-bold text-gray-800">הבקשות שלי</h2>
         <button
           onClick={openNew}
           className="flex items-center gap-2 bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm font-medium">
-          
           <Plus className="w-4 h-4" />
           בקשה חדשה
         </button>
       </div>
 
-      {loading ?
-      <div className="text-center py-20 text-gray-400">טוען...</div> :
-      apps.length === 0 ?
-      <div className="text-center py-20 text-gray-400">
+      {loading ? (
+        <div className="text-center py-20 text-gray-400">טוען...</div>
+      ) : apps.length === 0 ? (
+        <div className="text-center py-20 text-gray-400">
           <FileText className="w-16 h-16 mx-auto mb-4 opacity-30" />
           <p className="text-lg">אין בקשות עדיין</p>
           <p className="text-sm mt-1">לחץ על &quot;בקשה חדשה&quot; להגשת בקשה</p>
-        </div> :
-
-      <div className="grid gap-4">
-          {apps.map((app) =>
-        <div key={app.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {apps.map((app) => (
+            <div key={app.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 className="font-bold text-gray-800 text-lg">{app.business}</h3>
@@ -68,31 +102,30 @@ export default function BusinessOwnerView() {
                 <p className="text-gray-400 text-xs mt-1">
                   {app.application_id} · {app.type === 'type1' ? 'סגירה עונתית/חורף' : 'מבנה קבוע/עונתי'} · {app.area} מ״ר
                 </p>
-                {app.notes &&
-            <p className="text-amber-700 text-sm mt-2 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+                {app.notes && (
+                  <p className="text-amber-700 text-sm mt-2 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
                     <strong>הערת בודק:</strong> {app.notes}
                   </p>
-            }
+                )}
               </div>
               <div className="flex gap-2 flex-shrink-0">
-                {(app.status === 'pending_owner' || app.status === 'rejected') &&
-            <button
-              onClick={() => openEdit(app)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition ${
-              app.status === 'rejected' ?
-              'border-red-300 text-red-700 hover:bg-red-50' :
-              'border-blue-300 text-blue-700 hover:bg-blue-50'}`
-              }>
-              
+                {(app.status === 'pending_owner' || app.status === 'rejected') && (
+                  <button
+                    onClick={() => openEdit(app)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition ${
+                      app.status === 'rejected'
+                        ? 'border-red-300 text-red-700 hover:bg-red-50'
+                        : 'border-blue-300 text-blue-700 hover:bg-blue-50'
+                    }`}>
                     <RefreshCw className="w-3.5 h-3.5" />
                     {app.status === 'rejected' ? 'ערוך והגש מחדש' : 'המשך מילוי'}
                   </button>
-            }
+                )}
               </div>
             </div>
-        )}
+          ))}
         </div>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 }
