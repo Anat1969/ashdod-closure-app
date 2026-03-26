@@ -45,7 +45,7 @@ const DOCUMENTS_TYPE2 = [
   { id: 'doc2_5', text: 'טופס דיווח על ביצוע עבודה הפטורה מהיתר' },
 ];
 
-const STEPS = ['פרטי עסק', 'סוג סגירה', 'טופס רשמי', 'רשימת תנאים', 'מסמכים ותמונות', 'אישור והגשה'];
+const STEPS = ['סוג סגירה', 'טופס רשמי', 'רשימת תנאים', 'מסמכים ותמונות', 'אישור והגשה'];
 
 async function uploadFile(file) {
   const { file_url } = await base44.integrations.Core.UploadFile({ file });
@@ -243,11 +243,10 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
   };
 
   const canNext = () => {
-    if (step === 0) return form.business && form.owner && form.address && form.phone && form.email && form.lat && form.lng;
-    if (step === 1) return form.type && form.area;
-    if (step === 2) return allDeclared;
-    if (step === 3) return allChecked;
-    if (step === 4) return true;
+    if (step === 0) return form.type && form.area;
+    if (step === 1) return form.business && form.owner && form.address && form.phone && form.email && allDeclared;
+    if (step === 2) return allChecked;
+    if (step === 3) return true;
     return true;
   };
 
@@ -271,25 +270,8 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        {/* Step 0: Business Details */}
+        {/* Step 0: Type & Area */}
         {step === 0 && (
-          <div className="space-y-4">
-            <h3 className="font-bold text-gray-700 mb-4">פרטי העסק ובעל הבית</h3>
-            {[
-              { field: 'business', label: 'שם העסק', type: 'text' },
-              { field: 'owner', label: 'שם בעל העסק', type: 'text' },
-              { field: 'address', label: 'כתובת מלאה', type: 'text' },
-              { field: 'phone', label: 'טלפון', type: 'tel' },
-              { field: 'email', label: 'דוא״ל', type: 'email' },
-            ].map(({ field, label, type }) => (
-              <Field key={field} label={label} type={type} value={form[field]} onChange={v => update(field, v)} />
-            ))}
-            <MapPicker lat={form.lat} lng={form.lng} onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
-          </div>
-        )}
-
-        {/* Step 1: Type & Area */}
-        {step === 1 && (
           <div className="space-y-6">
             <h3 className="font-bold text-gray-700 mb-4">סוג הסגירה</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -320,13 +302,26 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
           </div>
         )}
 
-        {/* Step 2: Official Form */}
-        {step === 2 && form.type === 'type1' && (
+        {/* Step 1: Official Form */}
+        {step === 1 && form.type === 'type1' && (
           <div className="space-y-5">
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-2">
               <h3 className="font-bold text-blue-900 text-base mb-0.5">טופס בקשה לפרגוד — חלק א׳: פרטי הבקשה</h3>
               <p className="text-xs text-blue-600">מחלקת פיקוח עירוני · עיריית אשדוד</p>
             </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
+              <p className="text-sm font-semibold text-gray-700">פרטי העסק</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="שם העסק" value={form.business} onChange={v => update('business', v)} />
+                <Field label="שם בעל העסק" value={form.owner} onChange={v => update('owner', v)} />
+                <Field label="כתובת מלאה" value={form.address} onChange={v => update('address', v)} />
+                <Field label="טלפון" type="tel" value={form.phone} onChange={v => update('phone', v)} />
+                <Field label="דוא״ל" type="email" value={form.email} onChange={v => update('email', v)} />
+              </div>
+              <MapPicker lat={form.lat} lng={form.lng} onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <Field label="תיק רישוי" value={form.license_file} onChange={v => update('license_file', v)} />
               <Field label="סוג העסק" value={form.business_type} onChange={v => update('business_type', v)} />
@@ -365,11 +360,23 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
           </div>
         )}
 
-        {step === 2 && form.type === 'type2' && (
+        {step === 1 && form.type === 'type2' && (
           <div className="space-y-5">
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-2">
               <h3 className="font-bold text-purple-900 text-base mb-0.5">טופס בקשה לסגירה עונתית</h3>
               <p className="text-xs text-purple-600">מחלקת נכסים · עיריית אשדוד</p>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
+              <p className="text-sm font-semibold text-gray-700">פרטי העסק</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="שם העסק" value={form.business} onChange={v => update('business', v)} />
+                <Field label="שם בעל העסק" value={form.owner} onChange={v => update('owner', v)} />
+                <Field label="כתובת מלאה" value={form.address} onChange={v => update('address', v)} />
+                <Field label="טלפון" type="tel" value={form.phone} onChange={v => update('phone', v)} />
+                <Field label="דוא״ל" type="email" value={form.email} onChange={v => update('email', v)} />
+              </div>
+              <MapPicker lat={form.lat} lng={form.lng} onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
             </div>
 
             <div>
@@ -440,8 +447,8 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
           </div>
         )}
 
-        {/* Step 3: Checklist */}
-        {step === 3 && (
+        {/* Step 2: Checklist */}
+        {step === 2 && (
           <div>
             <h3 className="font-bold text-gray-700 mb-2">
               רשימת תנאים — {form.type === 'type1' ? 'סגירה עונתית' : 'מבנה קבוע'}
@@ -460,8 +467,8 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
           </div>
         )}
 
-        {/* Step 4: Documents */}
-        {step === 4 && (
+        {/* Step 3: Documents */}
+        {step === 3 && (
           <div className="space-y-5">
             <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2"><ImageIcon className="w-5 h-5 text-blue-500" /> מסמכים ותמונות</h3>
             <div>
@@ -479,8 +486,8 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
           </div>
         )}
 
-        {/* Step 5: Summary */}
-        {step === 5 && (
+        {/* Step 4: Summary */}
+        {step === 4 && (
           <div className="text-center py-8">
             <Send className="w-16 h-16 text-blue-600 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-800 mb-2">מוכן להגשה</h3>
