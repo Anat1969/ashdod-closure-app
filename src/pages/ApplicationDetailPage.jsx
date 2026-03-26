@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from '../components/closure/StatusBadge';
-import { ArrowRight, Phone, Mail, MapPin, Ruler, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowRight, Phone, Mail, MapPin, Ruler, FileText, CheckCircle, XCircle, Upload, ImageIcon } from 'lucide-react';
 
 const CHECKLISTS = {
   type1: [
@@ -31,6 +31,9 @@ export default function ApplicationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [planImage, setPlanImage] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     base44.entities.ClosureApplication.filter({ id })
@@ -38,9 +41,26 @@ export default function ApplicationDetailPage() {
         const found = data[0];
         setApp(found);
         setNotes(found?.notes || '');
+        setPlanImage(found?.plan_image || null);
         setLoading(false);
       });
   }, [id]);
+
+  const handleImageUpload = async (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setUploadingImage(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setPlanImage(file_url);
+    await base44.entities.ClosureApplication.update(app.id, { plan_image: file_url });
+    setUploadingImage(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    handleImageUpload(file);
+  };
 
   const handleStatus = async (newStatus) => {
     setSaving(true);
@@ -145,6 +165,52 @@ export default function ApplicationDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Plan image upload */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+          <ImageIcon className="w-5 h-5 text-blue-500" />
+          תוכנית הסגירה
+        </h3>
+        {planImage ? (
+          <div className="relative">
+            <img src={planImage} alt="תוכנית סגירה" className="w-full rounded-xl border border-gray-200 max-h-80 object-contain" />
+            <button
+              onClick={() => { setPlanImage(null); base44.entities.ClosureApplication.update(app.id, { plan_image: null }); }}
+              className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-lg hover:bg-red-600"
+            >
+              הסר
+            </button>
+          </div>
+        ) : (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer ${
+              dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+            }`}
+            onClick={() => document.getElementById('plan-upload').click()}
+          >
+            <input
+              id="plan-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleImageUpload(e.target.files[0])}
+            />
+            {uploadingImage ? (
+              <div className="text-blue-500 text-sm">מעלה תמונה...</div>
+            ) : (
+              <>
+                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-sm text-gray-500">גרור תמונה לכאן או לחץ להעלאה</p>
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG, PDF</p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Admin actions */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
