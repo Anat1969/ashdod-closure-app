@@ -201,6 +201,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
     authorized_name: application?.authorized_name || '',
     authorized_id: application?.authorized_id || '',
     authorized_phone: application?.authorized_phone || '',
+    authorized_email: application?.authorized_email || '',
     block: application?.block || '',
     parcel: application?.parcel || '',
     property_address: application?.property_address || '',
@@ -389,10 +390,11 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
             </div>
             <div className="border-t border-gray-100 pt-3">
               <p className="text-sm font-semibold text-gray-600 mb-3">מורשי חתימה</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <Field label="שם" value={form.authorized_name} onChange={v => update('authorized_name', v)} />
                 <Field label="ת.ז" value={form.authorized_id} onChange={v => update('authorized_id', v)} />
                 <Field label="טלפון" type="tel" value={form.authorized_phone} onChange={v => update('authorized_phone', v)} />
+                <Field label="דוא"ל" type="email" value={form.authorized_email} onChange={v => update('authorized_email', v)} />
               </div>
             </div>
             <div className="border-t border-gray-100 pt-3">
