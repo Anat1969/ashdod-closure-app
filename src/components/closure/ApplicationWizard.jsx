@@ -151,9 +151,12 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
       {/* Steps */}
       <div className="flex gap-2 mb-8">
         {STEPS.map((s, i) => (
-          <div key={i} className={`flex-1 text-center text-xs py-2 rounded-lg font-medium transition-all ${
-            i === step ? 'bg-blue-700 text-white' : i < step ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'
-          }`}>{s}</div>
+          <button
+            key={i}
+            onClick={() => i < step || canNext() ? setStep(i) : null}
+            className={`flex-1 text-center text-xs py-2 rounded-lg font-medium transition-all ${
+              i === step ? 'bg-blue-700 text-white' : i < step ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}>{s}</button>
         ))}
       </div>
 
