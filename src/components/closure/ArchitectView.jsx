@@ -64,17 +64,27 @@ export default function ArchitectView() {
         json_schema: {
           type: 'object',
           properties: {
-            business: { type: 'string', title: 'שם העסק' },
-            address: { type: 'string', title: 'הכתובת' },
-            business_type: { type: 'string', title: 'סוג העסק' },
-            closure_type: { type: 'string', title: 'סוג הסגירה', enum: ['type1', 'type2'] },
+            businesses: {
+              type: 'array',
+              title: 'רשימת עסקים',
+              items: {
+                type: 'object',
+                properties: {
+                  business: { type: 'string', title: 'שם העסק' },
+                  address: { type: 'string', title: 'הכתובת' },
+                  business_type: { type: 'string', title: 'סוג העסק' },
+                  closure_type: { type: 'string', title: 'סוג הסגירה', enum: ['type1', 'type2'] },
+                },
+                required: ['business', 'address', 'business_type', 'closure_type'],
+              },
+            },
           },
-          required: ['business', 'address', 'business_type', 'closure_type'],
+          required: ['businesses'],
         },
       });
 
-      if (result.status === 'success' && result.output) {
-        setExtractedData(result.output);
+      if (result.status === 'success' && result.output && result.output.businesses) {
+        setExtractedData(result.output.businesses);
       } else {
         alert('שגיאה בחילוץ נתונים: ' + (result.details || 'לא הצליח לחלץ נתונים'));
       }
@@ -86,13 +96,13 @@ export default function ArchitectView() {
   };
 
   const handleCreateApplications = async () => {
-    if (!extractedData) return;
+    if (!extractedData || !Array.isArray(extractedData)) return;
     try {
-      const newApp = {
-        business: extractedData.business,
-        address: extractedData.address,
-        business_type: extractedData.business_type,
-        type: extractedData.closure_type,
+      const newApps = extractedData.map(data => ({
+        business: data.business,
+        address: data.address,
+        business_type: data.business_type,
+        type: data.closure_type,
         owner: '',
         phone: '',
         email: '',
@@ -101,14 +111,14 @@ export default function ArchitectView() {
         checklist: {},
         submitted_at: new Date().toISOString(),
         application_id: `ASH-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
-      };
-      await base44.entities.ClosureApplication.create(newApp);
-      alert('הבקשה נוצרה בהצלחה!');
+      }));
+      await base44.entities.ClosureApplication.bulkCreate(newApps);
+      alert(`נוצרו ${newApps.length} בקשות בהצלחה!`);
       setUploadedFile(null);
       setExtractedData(null);
       load();
     } catch (err) {
-      alert('שגיאה ביצירת הבקשה: ' + err.message);
+      alert('שגיאה ביצירת הבקשות: ' + err.message);
     }
   };
 
@@ -192,12 +202,18 @@ export default function ArchitectView() {
         </div>
         {extractedData && (
           <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
-            <p className="font-semibold text-green-800 mb-2">נתונים שחולצו:</p>
-            <div className="grid grid-cols-2 gap-2 text-green-700">
-              <div><span className="font-medium">עסק:</span> {extractedData.business}</div>
-              <div><span className="font-medium">כתובת:</span> {extractedData.address}</div>
-              <div><span className="font-medium">סוג עסק:</span> {extractedData.business_type}</div>
-              <div><span className="font-medium">סוג סגירה:</span> {extractedData.closure_type === 'type1' ? 'סגירת חורף/פרגוד' : 'סגירה עונתית'}</div>
+            <p className="font-semibold text-green-800 mb-2">נתונים שחולצו ({extractedData.length} עסקים):</p>
+            <div className="space-y-2 max-h-60 overflow-auto">
+              {extractedData.map((item, i) => (
+                <div key={i} className="bg-white rounded p-2 border border-green-200">
+                  <div className="grid grid-cols-2 gap-2 text-green-700">
+                    <div><span className="font-medium">עסק:</span> {item.business}</div>
+                    <div><span className="font-medium">כתובת:</span> {item.address}</div>
+                    <div><span className="font-medium">סוג עסק:</span> {item.business_type}</div>
+                    <div><span className="font-medium">סוג סגירה:</span> {item.closure_type === 'type1' ? 'סגירת חורף/פרגוד' : 'סגירה עונתית'}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
