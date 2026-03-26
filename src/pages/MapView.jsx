@@ -71,7 +71,8 @@ export default function MapView() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [flyTo, setFlyTo] = useState(null);
-  const [filter, setFilter] = useState('approved');
+  const [editingApp, setEditingApp] = useState(null);
+  const [tempCoords, setTempCoords] = useState(null);
   const markerRefs = useRef({});
 
   useEffect(() => {
@@ -79,16 +80,42 @@ export default function MapView() {
       .then(data => { setApps(data); setLoading(false); });
   }, []);
 
-  const filtered = filter === 'all' ? apps : apps.filter(a => a.status === filter);
+  const filtered = apps;
 
   const handleSelect = (app) => {
     setSelected(app.id);
     const coords = app.lat && app.lng ? [app.lat, app.lng] : guessCoords(app.address);
     setFlyTo(coords);
-    // open popup
     setTimeout(() => {
       markerRefs.current[app.id]?.openPopup();
     }, 1300);
+  };
+
+  const handleMapClick = async (e) => {
+    if (!editingApp) return;
+    const { lat, lng } = e.latlng;
+    setTempCoords([lat, lng]);
+  };
+
+  const handleSaveLocation = async () => {
+    if (!editingApp || !tempCoords) return;
+    try {
+      await base44.entities.ClosureApplication.update(editingApp.id, {
+        lat: tempCoords[0],
+        lng: tempCoords[1],
+      });
+      setApps(prev => prev.map(a => a.id === editingApp.id ? { ...a, lat: tempCoords[0], lng: tempCoords[1] } : a));
+      setEditingApp(null);
+      setTempCoords(null);
+      alert('המיקום נשמר בהצלחה!');
+    } catch (err) {
+      alert('שגיאה בשמירת המיקום: ' + err.message);
+    }
+  };
+
+  const handleCancelLocation = () => {
+    setEditingApp(null);
+    setTempCoords(null);
   };
 
   return (
@@ -97,23 +124,13 @@ export default function MapView() {
       <header className="bg-blue-900 text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
         <MapPin className="w-5 h-5" />
         <h1 className="font-bold text-lg">מפת סגירות — עיריית אשדוד</h1>
-        <div className="mr-auto flex gap-1">
-          {[
-            { val: 'approved', label: 'מאושרות' },
-            { val: 'pending_review', label: 'בבדיקה' },
-            { val: 'all', label: 'הכל' },
-          ].map(f => (
-            <button
-              key={f.val}
-              onClick={() => setFilter(f.val)}
-              className={`px-3 py-1 rounded-lg text-sm transition-all ${
-                filter === f.val ? 'bg-white text-blue-900 font-semibold' : 'text-blue-200 hover:text-white'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {editingApp && (
+          <div className="mr-auto flex gap-2 items-center bg-white/10 rounded-lg px-3 py-1">
+            <span className="text-sm">מצב עריכת מיקום: {editingApp.business}</span>
+            <button onClick={handleSaveLocation} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-medium">שמור</button>
+            <button onClick={handleCancelLocation} className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm">ביטול</button>
+          </div>
+        )}
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -162,12 +179,18 @@ export default function MapView() {
             zoom={13}
             className="w-full h-full"
             zoomControl={false}
+            onClick={handleMapClick}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {flyTo && <FlyTo coords={flyTo} key={flyTo.join(',')} />}
+            {editingApp && tempCoords && (
+              <Marker position={tempCoords}>
+                <Popup>מיקום נבחר</Popup>
+              </Marker>
+            )}
             {filtered.map(app => {
               const coords = app.lat && app.lng ? [app.lat, app.lng] : guessCoords(app.address);
               return (
@@ -188,6 +211,14 @@ export default function MapView() {
                       </div>
                       {app.phone && (
                         <div className="text-xs text-gray-500 mt-1">📞 {app.phone}</div>
+                      )}
+                      {!app.lat && !app.lng && (
+                        <button
+                          onClick={() => { setEditingApp(app); setFlyTo([ASHDOD_CENTER[0], ASHDOD_CENTER[1]]); setSelected(null); }}
+                          className="mt-2 w-full text-center text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition"
+                        >
+                          📍 סמן מיקום
+                        </button>
                       )}
                       <button
                         onClick={() => navigate(`/architect/${app.id}`)}
