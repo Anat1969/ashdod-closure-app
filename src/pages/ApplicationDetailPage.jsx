@@ -102,31 +102,110 @@ export default function ApplicationDetailPage() {
       });
   }, [id]);
 
+  const buildReportText = (currentApp, currentNotes) => {
+    const checklist = currentApp.type === 'type1' ? CHECKLIST_TYPE1 : CHECKLIST_TYPE2;
+    const checked = checklist.filter(c => currentApp.checklist?.[c.id]);
+    const unchecked = checklist.filter(c => !currentApp.checklist?.[c.id]);
+    const uploaded = DOCS_LABELS.filter(d => currentApp[d.key]);
+    const missing = DOCS_LABELS.filter(d => !currentApp[d.key]);
+    const missingF = [];
+    if (!currentApp.business) missingF.push('שם העסק');
+    if (!currentApp.owner) missingF.push('שם בעל העסק');
+    if (!currentApp.address) missingF.push('כתובת');
+    if (!currentApp.phone) missingF.push('טלפון');
+    if (!currentApp.email) missingF.push('דואל');
+    if (!currentApp.area) missingF.push('שטח');
+    if (!currentApp.lat || !currentApp.lng) missingF.push('מיקום על המפה');
+    if (!currentApp.description) missingF.push('תיאור הבקשה');
+
+    const statusLabel = { approved: 'מאושרת', rejected: 'נדחתה', pending_owner: 'ממתינה לתיקון', pending_review: 'בבדיקה' }[currentApp.status] || currentApp.status;
+
+    return `דוח בדיקה — ${currentApp.business} (${currentApp.application_id})
+תאריך: ${new Date().toLocaleDateString('he-IL')}
+סטטוס: ${statusLabel}
+סוג: ${currentApp.type === 'type1' ? 'סגירת חורף / פרגוד' : 'סגירה עונתית'}
+שטח: ${currentApp.area} מר
+כתובת: ${currentApp.address}
+
+--- פרטי מגיש ---
+בעל עסק: ${currentApp.owner || 'לא מולא'}
+טלפון: ${currentApp.phone || 'לא מולא'}
+דואל: ${currentApp.email || 'לא מולא'}
+${currentApp.description ? `תיאור: ${currentApp.description}` : ''}
+
+--- שדות חסרים ---
+${missingF.length === 0 ? 'כל השדות מולאו' : missingF.join('\n')}
+
+--- תנאים שאושרו (${checked.length}/${checklist.length}) ---
+${checked.map(c => '✓ ' + c.text).join('\n')}
+
+--- תנאים שלא אושרו ---
+${unchecked.length === 0 ? 'אין' : unchecked.map(c => '✗ ' + c.text).join('\n')}
+
+--- מסמכים שהועלו ---
+${uploaded.length === 0 ? 'אין' : uploaded.map(d => '✓ ' + d.label).join('\n')}
+
+--- מסמכים חסרים ---
+${missing.length === 0 ? 'אין' : missing.map(d => '✗ ' + d.label).join('\n')}
+
+--- הערות הבודק ---
+${currentNotes || 'אין הערות'}`;
+  };
+
+  const addHistory = (app, entry) => {
+    return [...(app.history || []), { ...entry, date: new Date().toISOString() }];
+  };
+
   const handleStatus = async (newStatus) => {
     setSaving(true);
-    await base44.entities.ClosureApplication.update(app.id, { status: newStatus, notes });
-    setApp(prev => ({ ...prev, status: newStatus, notes }));
+    const report = buildReportText(app, notes);
+    const statusLabel = { approved: 'אושרה', rejected: 'נדחתה', pending_owner: 'הוחזרה לתיקון', pending_review: 'בבדיקה' }[newStatus] || newStatus;
+    const history = addHistory(app, {
+      type: 'status_change',
+      status: newStatus,
+      notes,
+      report_summary: report,
+    });
+    await base44.entities.ClosureApplication.update(app.id, { status: newStatus, notes, history });
+    setApp(prev => ({ ...prev, status: newStatus, notes, history }));
     setSaving(false);
   };
 
   const handleSendEmail = async () => {
     setSendingEmail(true);
-    const recipients = [];
-    if (emailTo === 'owner' || emailTo === 'both') recipients.push(app.email);
-    if ((emailTo === 'applicant' || emailTo === 'both') && app.applicant_phone) {
-      // applicant email not stored separately — fallback to owner
-    }
+    const report = buildReportText(app, notes);
+    const statusLabel = { approved: 'אושרה', rejected: 'נדחתה', pending_owner: 'ממתינה לתיקון', pending_review: 'בבדיקה' }[app.status] || app.status;
 
-    const statusLabel = app.status === 'approved' ? 'אושרה' : app.status === 'rejected' ? 'נדחתה' : 'ממתינה לתיקון';
-    const body = `שלום,\n\nבקשת הסגירה שלך עבור העסק "${app.business}" (מס׳ ${app.application_id}) ${statusLabel}.\n\n${notes ? `הערות הבודק:\n${notes}\n\n` : ''}בברכה,\nמחלקת פיקוח עירוני — עיריית אשדוד`;
+    const body = `שלום,
 
-    for (const to of recipients) {
+בקשת הסגירה עבור העסק "${app.business}" (מס' ${app.application_id}) — סטטוס: ${statusLabel}.
+
+${notes ? `הערות הבודק:\n${notes}\n\n` : ''}להלן דוח הבדיקה המלא:
+
+${report}
+
+בברכה,
+מחלקת פיקוח עירוני — עיריית אשדוד`;
+
+    if (app.email) {
       await base44.integrations.Core.SendEmail({
-        to,
-        subject: `עדכון בקשת סגירה — ${app.business} (${app.application_id})`,
+        to: app.email,
+        subject: `דוח בדיקה — ${app.business} (${app.application_id})`,
         body,
       });
     }
+
+    // Save to history
+    const history = addHistory(app, {
+      type: 'email_sent',
+      status: app.status,
+      notes,
+      email_sent_to: app.email,
+      report_summary: report,
+    });
+    await base44.entities.ClosureApplication.update(app.id, { history, notes });
+    setApp(prev => ({ ...prev, history, notes }));
+
     setSendingEmail(false);
     setEmailSent(true);
     setTimeout(() => setEmailSent(false), 3000);
@@ -321,6 +400,38 @@ export default function ApplicationDetailPage() {
                 {item.price && <span className="text-gray-500 text-sm">{item.price}</span>}
               </div>
             ))}
+          </div>
+        </Section>
+      )}
+
+      {/* History */}
+      {app.history?.length > 0 && (
+        <Section title={`היסטוריית בקשה (${app.history.length} אירועים)`} icon={Calendar} defaultOpen={false}>
+          <div className="space-y-3">
+            {[...app.history].reverse().map((entry, i) => {
+              const statusLabel = { approved: 'אושרה', rejected: 'נדחתה', pending_owner: 'הוחזרה לתיקון', pending_review: 'בבדיקה' }[entry.status] || entry.status;
+              return (
+                <div key={i} className={`rounded-xl border p-3 text-sm ${
+                  entry.type === 'email_sent' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-semibold text-gray-700">
+                      {entry.type === 'email_sent' ? '✉️ נשלח מייל' : '🔄 שינוי סטטוס'}
+                      {statusLabel && ` — ${statusLabel}`}
+                    </span>
+                    <span className="text-xs text-gray-400">{entry.date ? new Date(entry.date).toLocaleString('he-IL') : ''}</span>
+                  </div>
+                  {entry.email_sent_to && <p className="text-xs text-blue-600">נשלח אל: {entry.email_sent_to}</p>}
+                  {entry.notes && <p className="text-xs text-gray-600 mt-1">הערות: {entry.notes}</p>}
+                  {entry.report_summary && (
+                    <details className="mt-2">
+                      <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">צפה בדוח המלא</summary>
+                      <pre className="mt-2 text-xs text-gray-600 whitespace-pre-wrap bg-white rounded-lg p-2 border border-gray-100 max-h-60 overflow-auto">{entry.report_summary}</pre>
+                    </details>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Section>
       )}
