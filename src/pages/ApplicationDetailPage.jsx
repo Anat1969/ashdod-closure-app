@@ -91,6 +91,7 @@ export default function ApplicationDetailPage() {
   const [emailTo, setEmailTo] = useState('owner');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   useEffect(() => {
     base44.entities.ClosureApplication.filter({ id })
@@ -207,43 +208,38 @@ export default function ApplicationDetailPage() {
     setSaving(false);
   };
 
+  const buildEmailBody = () => {
+    const report = buildReportText(app, notes);
+    return report;
+  };
+
+  const emailSubject = `הערות בדיקה — ${app?.business || ''} (${app?.application_id || ''})`;
+
   const handleSendEmail = async () => {
     setSendingEmail(true);
-    const report = buildReportText(app, notes);
-    const statusLabel = { approved: 'אושרה', rejected: 'נדחתה', pending_owner: 'ממתינה לתיקון', pending_review: 'בבדיקה' }[app.status] || app.status;
-
-    const body = `שלום,
-
-בקשת הסגירה עבור העסק "${app.business}" (מס' ${app.application_id}) — סטטוס: ${statusLabel}.
-
-${notes ? `הערות הבודק:\n${notes}\n\n` : ''}להלן דוח הבדיקה המלא:
-
-${report}
-
-בברכה,
-מחלקת פיקוח עירוני — עיריית אשדוד`;
+    const body = buildEmailBody();
 
     if (app.email) {
       await base44.integrations.Core.SendEmail({
         to: app.email,
-        subject: `דוח בדיקה — ${app.business} (${app.application_id})`,
+        subject: emailSubject,
         body,
       });
     }
 
-    // Save to history
     const history = addHistory(app, {
       type: 'email_sent',
       status: app.status,
       notes,
       email_sent_to: app.email,
-      report_summary: report,
+      report_summary: body,
     });
     await base44.entities.ClosureApplication.update(app.id, { history, notes });
     setApp(prev => ({ ...prev, history, notes }));
 
     setSendingEmail(false);
     setEmailSent(true);
+    setShowEmailPreview(false);
     setTimeout(() => setEmailSent(false), 3000);
   };
 
@@ -491,25 +487,51 @@ ${report}
 
         {/* Email section */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
-          <p className="text-sm font-semibold text-blue-800 flex items-center gap-1.5"><Mail className="w-4 h-4" /> שליחת מייל עם ההערות</p>
-          <div className="flex gap-3 flex-wrap">
-            {[
-              { val: 'owner', label: `בעל העסק (${app.email || 'לא הוזן'})` },
-            ].map(opt => (
-              <label key={opt.val} className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer text-sm transition ${emailTo === opt.val ? 'border-blue-500 bg-white' : 'border-blue-200 bg-blue-50'}`}>
-                <input type="radio" name="emailTo" value={opt.val} checked={emailTo === opt.val} onChange={() => setEmailTo(opt.val)} className="accent-blue-600" />
-                {opt.label}
-              </label>
-            ))}
-          </div>
+          <p className="text-sm font-semibold text-blue-800 flex items-center gap-1.5"><Mail className="w-4 h-4" /> שליחת מייל עם דוח בדיקה</p>
+          <p className="text-xs text-blue-600">אל: {app.email || 'לא הוזן'}</p>
           <button
-            onClick={handleSendEmail}
-            disabled={sendingEmail || !app.email || emailSent}
+            onClick={() => setShowEmailPreview(true)}
+            disabled={!app.email || emailSent}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition ${emailSent ? 'bg-green-600 text-white' : 'bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-50'}`}
           >
-            {emailSent ? <><CheckCircle className="w-4 h-4" /> נשלח!</> : sendingEmail ? 'שולח...' : <><Send className="w-4 h-4" /> שלח מייל</>}
+            {emailSent ? <><CheckCircle className="w-4 h-4" /> נשלח!</> : <><Mail className="w-4 h-4" /> צפה ושלח מייל</>}
           </button>
         </div>
+
+        {/* Email Preview Modal */}
+        {showEmailPreview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowEmailPreview(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2"><Mail className="w-5 h-5 text-blue-600" /> תצוגה לפני שליחה</h3>
+                <button onClick={() => setShowEmailPreview(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+              </div>
+              <div className="px-6 py-4 border-b border-gray-100 space-y-2 bg-gray-50">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-500 w-12 flex-shrink-0">אל:</span>
+                  <span className="font-medium text-gray-800">{app.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-500 w-12 flex-shrink-0">נושא:</span>
+                  <span className="font-medium text-gray-800">{emailSubject}</span>
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto px-6 py-4">
+                <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed bg-gray-50 rounded-xl p-4 border border-gray-200">{buildEmailBody()}</pre>
+              </div>
+              <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+                <button onClick={() => setShowEmailPreview(false)} className="px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm hover:bg-gray-50 transition">בטל</button>
+                <button
+                  onClick={handleSendEmail}
+                  disabled={sendingEmail}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-700 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-50 transition"
+                >
+                  {sendingEmail ? 'שולח...' : <><Send className="w-4 h-4" /> שלח מייל</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3 flex-wrap pt-2 border-t border-gray-100">
