@@ -396,15 +396,6 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
               <Field label="ח.פ" value={form.company_id} onChange={v => update('company_id', v)} />
             </div>
             <div className="border-t border-gray-100 pt-3">
-              <p className="text-sm font-semibold text-gray-600 mb-3">מורשי חתימה</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="שם" value={form.authorized_name} onChange={v => update('authorized_name', v)} />
-                <Field label="ת.ז" value={form.authorized_id} onChange={v => update('authorized_id', v)} />
-                <Field label="טלפון" type="tel" value={form.authorized_phone} onChange={v => update('authorized_phone', v)} />
-                <Field label="דוא׳ל" type="email" value={form.authorized_email} onChange={v => update('authorized_email', v)} />
-              </div>
-            </div>
-            <div className="border-t border-gray-100 pt-3">
               <p className="text-sm font-semibold text-gray-600 mb-3">פרטי המקרקעין</p>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="גוש" value={form.block} onChange={v => update('block', v)} />
