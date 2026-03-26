@@ -59,34 +59,25 @@ export default function ArchitectView() {
     if (!uploadedFile) return;
     setExtracting(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `חלץ את הנתונים הבאים מהמסמך:
-1. שם העסק
-2. הכתובת
-3. סוג העסק (לדוגמה: מסעדה, בית קפה, מזנון)
-4. סוג הסגירה המבוקשת (סגירת חורף/פרגוד או סגירה עונתית/מבנה קבוע)
-
-החזר אך ורק JSON במבנה הבא:
-{
-  "business": "שם העסק",
-  "address": "הכתובת המלאה",
-  "business_type": "סוג העסק",
-  "closure_type": "type1" או "type2" (type1 = סגירת חורף/פרגוד, type2 = סגירה עונתית)
-}`,
-        file_urls: uploadedFile.url,
-        response_json_schema: {
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url: uploadedFile.url,
+        json_schema: {
           type: 'object',
           properties: {
-            business: { type: 'string' },
-            address: { type: 'string' },
-            business_type: { type: 'string' },
-            closure_type: { type: 'string', enum: ['type1', 'type2'] },
+            business: { type: 'string', title: 'שם העסק' },
+            address: { type: 'string', title: 'הכתובת' },
+            business_type: { type: 'string', title: 'סוג העסק' },
+            closure_type: { type: 'string', title: 'סוג הסגירה', enum: ['type1', 'type2'] },
           },
           required: ['business', 'address', 'business_type', 'closure_type'],
         },
       });
 
-      setExtractedData(result);
+      if (result.status === 'success' && result.output) {
+        setExtractedData(result.output);
+      } else {
+        alert('שגיאה בחילוץ נתונים: ' + (result.details || 'לא הצליח לחלץ נתונים'));
+      }
     } catch (err) {
       alert('שגיאה בחילוץ נתונים: ' + err.message);
     } finally {
