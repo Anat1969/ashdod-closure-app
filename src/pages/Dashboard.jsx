@@ -1,10 +1,54 @@
 import { useAuth } from '@/lib/AuthContext';
 import { Link } from 'react-router-dom';
-import { Building2, HardHat } from 'lucide-react';
+import { Building2, HardHat, Users, ChevronLeft } from 'lucide-react';
 
 export default function Dashboard() {
   const { currentUser } = useAuth();
-  const isAdmin = currentUser?.role === 'admin';
+
+  const tracks = [
+    {
+      to: '/owner',
+      icon: Building2,
+      color: 'blue',
+      title: 'מסלול בעל עסק',
+      subtitle: 'הגשת בקשת סגירה עונתית / חורף',
+      steps: ['מילוי פרטי העסק', 'בחירת סוג הסגירה ושטח', 'העלאת תוכניות ומסמכים', 'מעקב סטטוס הבקשה'],
+      border: 'border-blue-200',
+      bg: 'bg-blue-50 hover:bg-blue-100 hover:border-blue-400',
+      iconColor: 'text-blue-600',
+      titleColor: 'text-blue-800',
+      stepColor: 'text-blue-700',
+      dotColor: 'bg-blue-400',
+    },
+    {
+      to: '/architect',
+      icon: HardHat,
+      color: 'amber',
+      title: 'מסלול עירייה',
+      subtitle: 'בדיקה, אישור ומעקב בקשות',
+      steps: ['סקירת בקשות שהוגשו', 'בדיקת תנאים ומסמכים', 'מתן הערות לבעל העסק', 'אישור או דחיית הבקשה'],
+      border: 'border-amber-200',
+      bg: 'bg-amber-50 hover:bg-amber-100 hover:border-amber-400',
+      iconColor: 'text-amber-600',
+      titleColor: 'text-amber-800',
+      stepColor: 'text-amber-700',
+      dotColor: 'bg-amber-400',
+    },
+    {
+      to: '/residents',
+      icon: Users,
+      color: 'green',
+      title: 'מסלול תושב',
+      subtitle: 'מעקב פעילות עסקים מאושרים',
+      steps: ['צפייה ברשימת עסקים מאושרים', 'עיון בתפריט העסק', 'מציאת עסקים לפי כתובת', 'קבלת מידע על שעות ופעילות'],
+      border: 'border-green-200',
+      bg: 'bg-green-50 hover:bg-green-100 hover:border-green-400',
+      iconColor: 'text-green-600',
+      titleColor: 'text-green-800',
+      stepColor: 'text-green-700',
+      dotColor: 'bg-green-400',
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -16,35 +60,50 @@ export default function Dashboard() {
         <p className="text-gray-500 mt-1">ברוך הבא למערכת ניהול סגירות עיריית אשדוד</p>
       </div>
 
-      {/* Main buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
-        <Link
-          to="/owner"
-          className="flex flex-col items-center justify-center gap-4 border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 rounded-2xl p-10 transition-all group"
-        >
-          <div className="p-4 rounded-2xl bg-white shadow-sm text-blue-600 group-hover:shadow-md transition-all">
-            <Building2 className="w-10 h-10" />
-          </div>
-          <div className="text-center">
-            <div className="text-xl font-bold text-blue-800">מסלול בעל עסק</div>
-            <div className="text-sm text-blue-500 mt-1">הגשת בקשות סגירה עונתיות וחורף</div>
-          </div>
-        </Link>
+      {/* Mission statement */}
+      <div className="bg-gradient-to-l from-blue-900 to-blue-700 text-white rounded-2xl p-6 shadow">
+        <h3 className="text-lg font-bold mb-2">מטרת המערכת</h3>
+        <p className="text-blue-100 text-sm leading-relaxed">
+          מערכת זו נועדה להנגיש את תהליך הגשת בקשות הסגירה העונתית והחורף לבעלי עסקים בעיר אשדוד —
+          ולאפשר לעירייה לבחון, לאשר ולנהל את הבקשות בהתאם למדיניותה.
+          בנוסף, המערכת מאפשרת לתושבים לעקוב אחר הפעילות של עסקים מאושרים,
+          לצפות בתפריטים ולקבל מידע עדכני על שעות ומיקום.
+        </p>
+      </div>
 
-        {isAdmin && (
-          <Link
-            to="/architect"
-            className="flex flex-col items-center justify-center gap-4 border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 rounded-2xl p-10 transition-all group"
-          >
-            <div className="p-4 rounded-2xl bg-white shadow-sm text-amber-600 group-hover:shadow-md transition-all">
-              <HardHat className="w-10 h-10" />
-            </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-amber-800">מסלול עירייה</div>
-              <div className="text-sm text-amber-500 mt-1">בדיקה ואישור בקשות</div>
-            </div>
-          </Link>
-        )}
+      {/* Tracks */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {tracks.map(track => {
+          const Icon = track.icon;
+          return (
+            <Link
+              key={track.to}
+              to={track.to}
+              className={`flex flex-col border-2 ${track.border} ${track.bg} rounded-2xl p-6 transition-all group`}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 rounded-xl bg-white shadow-sm">
+                  <Icon className={`w-7 h-7 ${track.iconColor}`} />
+                </div>
+                <div>
+                  <div className={`text-lg font-bold ${track.titleColor}`}>{track.title}</div>
+                  <div className="text-xs text-gray-500">{track.subtitle}</div>
+                </div>
+              </div>
+              <ul className="space-y-1.5 mt-2 flex-1">
+                {track.steps.map((step, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <span className={`w-5 h-5 rounded-full ${track.dotColor} text-white text-xs flex items-center justify-center flex-shrink-0 font-bold`}>{i + 1}</span>
+                    <span className={track.stepColor}>{step}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className={`flex items-center gap-1 mt-4 text-sm font-medium ${track.titleColor} group-hover:gap-2 transition-all`}>
+                כניסה למסלול <ChevronLeft className="w-4 h-4" />
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
