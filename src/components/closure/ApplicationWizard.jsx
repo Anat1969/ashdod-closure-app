@@ -394,7 +394,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
                 <Field label="שם" value={form.authorized_name} onChange={v => update('authorized_name', v)} />
                 <Field label="ת.ז" value={form.authorized_id} onChange={v => update('authorized_id', v)} />
                 <Field label="טלפון" type="tel" value={form.authorized_phone} onChange={v => update('authorized_phone', v)} />
-                <Field label="דוא"ל" type="email" value={form.authorized_email} onChange={v => update('authorized_email', v)} />
+                <Field label="דוא׳ל" type="email" value={form.authorized_email} onChange={v => update('authorized_email', v)} />
               </div>
             </div>
             <div className="border-t border-gray-100 pt-3">
