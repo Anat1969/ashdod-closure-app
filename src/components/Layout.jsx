@@ -1,10 +1,11 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { LayoutDashboard, Building2, HardHat, Map, Users, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Building2, HardHat, Map, Users, LogOut, Menu, X, BookOpen } from 'lucide-react';
 import { useState } from 'react';
 
 const NAV_ITEMS = [
   { path: '/', label: 'דשבורד', icon: LayoutDashboard, adminOnly: false },
+  { path: '/policy', label: 'מדיניות', icon: BookOpen, adminOnly: false },
   { path: '/owner', label: 'מסלול בעל עסק', icon: Building2, adminOnly: false },
   { path: '/architect', label: 'מסלול עירייה', icon: HardHat, adminOnly: false },
   { path: '/map', label: 'מפת סגירות', icon: Map, adminOnly: false },
