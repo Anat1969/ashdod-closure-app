@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import ApplicationWizard from './ApplicationWizard';
 import StatusBadge from './StatusBadge';
-import { Plus, FileText, RefreshCw, ClipboardList, FormInput, Layers, Upload, Clock, CheckCircle2 } from 'lucide-react';
+import { Plus, FileText, RefreshCw, ClipboardList, FormInput, Layers, Upload, Clock, CheckCircle2, Search } from 'lucide-react';
 
 const PROCESS_STEPS = [
   { icon: ClipboardList, label: 'פתיחת בקשה' },
@@ -22,6 +22,9 @@ export default function BusinessOwnerView() {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState(null);
   const [editApp, setEditApp] = useState(null);
+  const [searchEmail, setSearchEmail] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searching, setSearching] = useState(false);
 
   const load = async () => {
     if (!currentUser) return;
@@ -29,6 +32,20 @@ export default function BusinessOwnerView() {
     const data = await base44.entities.ClosureApplication.filter({ created_by: currentUser.email }, '-created_date', 50);
     setApps(data);
     setLoading(false);
+  };
+
+  const handleSearch = async () => {
+    if (!searchEmail.trim()) return;
+    setSearching(true);
+    const byEmail = await base44.entities.ClosureApplication.filter({ email: searchEmail.trim() }, '-created_date', 50);
+    const byBusiness = await base44.entities.ClosureApplication.list('-created_date', 200);
+    const q = searchEmail.trim().toLowerCase();
+    const combined = [...byEmail, ...byBusiness.filter(a =>
+      a.business?.toLowerCase().includes(q) || a.application_id?.toLowerCase().includes(q)
+    )];
+    const unique = [...new Map(combined.map(a => [a.id, a])).values()];
+    setSearchResults(unique);
+    setSearching(false);
   };
 
   useEffect(() => { load(); }, [currentUser]);
@@ -74,6 +91,49 @@ export default function BusinessOwnerView() {
             );
           })}
         </div>
+      </div>
+
+      {/* Search section */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">חיפוש בקשה קיימת לפי מייל / שם עסק</h3>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchEmail}
+              onChange={e => { setSearchEmail(e.target.value); setSearchResults(null); }}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              placeholder="הזן מייל או שם עסק..."
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+          </div>
+          <button
+            onClick={handleSearch}
+            disabled={searching}
+            className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm font-medium disabled:opacity-50">
+            {searching ? 'מחפש...' : 'חפש'}
+          </button>
+        </div>
+        {searchResults && (
+          <div className="mt-3 space-y-2">
+            {searchResults.length === 0 ? (
+              <p className="text-sm text-gray-400">לא נמצאו בקשות</p>
+            ) : searchResults.map(app => (
+              <div key={app.id} className="bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-800 text-sm">{app.business}</div>
+                  <div className="text-xs text-gray-500">{app.email} · {app.application_id}</div>
+                </div>
+                <button
+                  onClick={() => openEdit(app)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+                  <RefreshCw className="w-3 h-3" /> ערוך
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between mb-6">
