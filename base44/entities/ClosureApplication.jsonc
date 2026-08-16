@@ -1,0 +1,255 @@
+{
+  "name": "ClosureApplication",
+  "type": "object",
+  "properties": {
+    "application_id": {
+      "type": "string",
+      "title": "\u05de\u05e1\u05e4\u05e8 \u05d1\u05e7\u05e9\u05d4"
+    },
+    "business": {
+      "type": "string",
+      "title": "\u05e9\u05dd \u05d4\u05e2\u05e1\u05e7"
+    },
+    "owner": {
+      "type": "string",
+      "title": "\u05e9\u05dd \u05d1\u05e2\u05dc \u05d4\u05e2\u05e1\u05e7"
+    },
+    "address": {
+      "type": "string",
+      "title": "\u05db\u05ea\u05d5\u05d1\u05ea"
+    },
+    "phone": {
+      "type": "string",
+      "title": "\u05d8\u05dc\u05e4\u05d5\u05df"
+    },
+    "email": {
+      "type": "string",
+      "title": "\u05d3\u05d5\u05d0\"\u05dc"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "type1",
+        "type2"
+      ],
+      "title": "\u05e1\u05d5\u05d2 \u05e1\u05d2\u05d9\u05e8\u05d4"
+    },
+    "area": {
+      "type": "number",
+      "title": "\u05e9\u05d8\u05d7 (\u05de\"\u05e8)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_owner",
+        "pending_review",
+        "approved",
+        "rejected"
+      ],
+      "title": "\u05e1\u05d8\u05d8\u05d5\u05e1",
+      "default": "pending_review"
+    },
+    "submitted_at": {
+      "type": "string",
+      "title": "\u05ea\u05d0\u05e8\u05d9\u05da \u05d4\u05d2\u05e9\u05d4"
+    },
+    "checklist": {
+      "type": "object",
+      "title": "\u05e8\u05e9\u05d9\u05de\u05ea \u05ea\u05e0\u05d0\u05d9\u05dd"
+    },
+    "notes": {
+      "type": "string",
+      "title": "\u05d4\u05e2\u05e8\u05d5\u05ea \u05d0\u05d3\u05e8\u05d9\u05db\u05dc"
+    },
+    "menu": {
+      "type": "object",
+      "title": "\u05ea\u05e4\u05e8\u05d9\u05d8 \u05e2\u05e1\u05e7"
+    },
+    "menu_items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "\u05e4\u05e8\u05d9\u05d8\u05d9 \u05ea\u05e4\u05e8\u05d9\u05d8"
+    },
+    "lat": {
+      "type": "number",
+      "title": "\u05e7\u05d5 \u05e8\u05d5\u05d7\u05d1"
+    },
+    "lng": {
+      "type": "number",
+      "title": "\u05e7\u05d5 \u05d0\u05d5\u05e8\u05da"
+    },
+    "description": {
+      "type": "string",
+      "title": "\u05ea\u05d9\u05d0\u05d5\u05e8 \u05d4\u05d1\u05e7\u05e9\u05d4"
+    },
+    "business_photo": {
+      "type": "string",
+      "title": "\u05ea\u05de\u05d5\u05e0\u05ea \u05d4\u05e2\u05e1\u05e7"
+    },
+    "closure_simulation": {
+      "type": "string",
+      "title": "\u05d4\u05d3\u05de\u05d9\u05d9\u05ea \u05d4\u05e1\u05d2\u05d9\u05e8\u05d4"
+    },
+    "site_plan": {
+      "type": "string",
+      "title": "\u05ea\u05d5\u05db\u05e0\u05d9\u05ea \u05d4\u05e2\u05de\u05d3\u05d4"
+    },
+    "facade_plan": {
+      "type": "string",
+      "title": "\u05ea\u05d5\u05db\u05e0\u05d9\u05ea \u05d7\u05d6\u05d9\u05ea"
+    },
+    "section_plan": {
+      "type": "string",
+      "title": "\u05ea\u05d5\u05db\u05e0\u05d9\u05ea \u05d7\u05ea\u05da"
+    },
+    "additional_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "\u05ea\u05de\u05d5\u05e0\u05d5\u05ea \u05e0\u05d5\u05e1\u05e4\u05d5\u05ea"
+    },
+    "plan_image": {
+      "type": "string",
+      "title": "\u05ea\u05d5\u05db\u05e0\u05d9\u05ea \u05d4\u05e1\u05d2\u05d9\u05e8\u05d4"
+    },
+    "closure_image": {
+      "type": "string",
+      "title": "\u05ea\u05de\u05d5\u05e0\u05ea \u05d4\u05e1\u05d2\u05d9\u05e8\u05d4 \u05d4\u05e8\u05e6\u05d5\u05d9\u05d4"
+    },
+    "license_file": {
+      "type": "string",
+      "title": "\u05ea\u05d9\u05e7 \u05e8\u05d9\u05e9\u05d5\u05d9"
+    },
+    "business_type": {
+      "type": "string",
+      "title": "\u05e1\u05d5\u05d2 \u05d4\u05e2\u05e1\u05e7"
+    },
+    "license_status": {
+      "type": "string",
+      "title": "\u05de\u05e6\u05d1 \u05e8\u05d9\u05e9\u05d5\u05d9"
+    },
+    "period_from": {
+      "type": "string",
+      "title": "\u05ea\u05e7\u05d5\u05e4\u05d4 \u05de"
+    },
+    "period_to": {
+      "type": "string",
+      "title": "\u05ea\u05e7\u05d5\u05e4\u05d4 \u05e2\u05d3"
+    },
+    "applicant_name": {
+      "type": "string",
+      "title": "\u05e9\u05dd \u05e2\u05d5\u05e8\u05da \u05d4\u05d1\u05e7\u05e9\u05d4"
+    },
+    "applicant_phone": {
+      "type": "string",
+      "title": "\u05d8\u05dc\u05e4\u05d5\u05df \u05e2\u05d5\u05e8\u05da \u05d4\u05d1\u05e7\u05e9\u05d4"
+    },
+    "applicant_license": {
+      "type": "string",
+      "title": "\u05de\u05e1 \u05e8\u05d9\u05e9\u05d9\u05d5\u05df \u05e2\u05d5\u05e8\u05da \u05d4\u05d1\u05e7\u05e9\u05d4"
+    },
+    "form_notes": {
+      "type": "string",
+      "title": "\u05d4\u05e2\u05e8\u05d5\u05ea \u05d8\u05d5\u05e4\u05e1"
+    },
+    "declarations": {
+      "type": "object",
+      "title": "\u05d4\u05e6\u05d4\u05e8\u05d5\u05ea"
+    },
+    "property_type": {
+      "type": "string",
+      "title": "\u05e1\u05d5\u05d2 \u05e0\u05db\u05e1"
+    },
+    "company_name": {
+      "type": "string",
+      "title": "\u05e9\u05dd \u05d4\u05d7\u05d1\u05e8\u05d4"
+    },
+    "company_id": {
+      "type": "string",
+      "title": "\u05d7.\u05e4"
+    },
+    "authorized_name": {
+      "type": "string",
+      "title": "\u05e9\u05dd \u05de\u05d5\u05e8\u05e9\u05d4 \u05d7\u05ea\u05d9\u05de\u05d4"
+    },
+    "authorized_id": {
+      "type": "string",
+      "title": "\u05ea.\u05d6 \u05de\u05d5\u05e8\u05e9\u05d4 \u05d7\u05ea\u05d9\u05de\u05d4"
+    },
+    "authorized_phone": {
+      "type": "string",
+      "title": "\u05d8\u05dc\u05e4\u05d5\u05df \u05de\u05d5\u05e8\u05e9\u05d4 \u05d7\u05ea\u05d9\u05de\u05d4"
+    },
+    "authorized_email": {
+      "type": "string",
+      "title": "\u05de\u05d9\u05d9\u05dc \u05de\u05d5\u05e8\u05e9\u05d4 \u05d7\u05ea\u05d9\u05de\u05d4"
+    },
+    "block": {
+      "type": "string",
+      "title": "\u05d2\u05d5\u05e9"
+    },
+    "parcel": {
+      "type": "string",
+      "title": "\u05d7\u05dc\u05e7\u05d4"
+    },
+    "property_address": {
+      "type": "string",
+      "title": "\u05db\u05ea\u05d5\u05d1\u05ea \u05d4\u05e0\u05db\u05e1"
+    },
+    "usage_period": {
+      "type": "string",
+      "title": "\u05ea\u05e7\u05d5\u05e4\u05ea \u05e9\u05d9\u05de\u05d5\u05e9"
+    },
+    "usage_option": {
+      "type": "string",
+      "title": "\u05d0\u05d5\u05e4\u05e6\u05d9\u05d4"
+    },
+    "usage_purpose": {
+      "type": "string",
+      "title": "\u05de\u05d8\u05e8\u05ea \u05d4\u05e9\u05d9\u05de\u05d5\u05e9"
+    },
+    "docs_checklist": {
+      "type": "object",
+      "title": "\u05e8\u05e9\u05d9\u05de\u05ea \u05de\u05e1\u05de\u05db\u05d9\u05dd"
+    },
+    "history": {
+      "type": "array",
+      "title": "\u05d4\u05d9\u05e1\u05d8\u05d5\u05e8\u05d9\u05d9\u05ea \u05d1\u05e7\u05e9\u05d4",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "email_sent_to": {
+            "type": "string"
+          },
+          "report_summary": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "business",
+    "owner",
+    "address",
+    "phone",
+    "email",
+    "type",
+    "area"
+  ]
+}
