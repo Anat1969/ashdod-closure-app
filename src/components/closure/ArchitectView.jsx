@@ -2,8 +2,54 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from './StatusBadge';
+import { nextApplicationIds } from '@/lib/applicationId';
+import { downloadBlob } from '@/lib/files';
+import { typeLabel, STATUS_LABELS, checklistFor } from './constants';
 
-import { CheckCircle, XCircle, Clock, FileText, Search, SlidersHorizontal, Upload, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Search, SlidersHorizontal, Upload, Loader2, Download, FileSpreadsheet } from 'lucide-react';
+
+async function exportApplicationsToExcel(apps) {
+  const XLSX = await import('xlsx');
+  const rows = apps.map(a => ({
+    'מספר בקשה': a.application_id || '',
+    'שם העסק': a.business || '',
+    'בעל העסק': a.owner || '',
+    'כתובת': a.address || '',
+    'טלפון': a.phone || '',
+    'דוא"ל': a.email || '',
+    'סוג העסק': a.business_type || '',
+    'סוג סגירה': typeLabel(a.type),
+    'שטח (מ"ר)': a.area || '',
+    'סטטוס': STATUS_LABELS[a.status] || a.status || '',
+    'תנאים שאושרו': `${checklistFor(a.type).filter(c => a.checklist?.[c.id]).length}/${checklistFor(a.type).length}`,
+    'תאריך הגשה': a.submitted_at ? new Date(a.submitted_at).toLocaleDateString('he-IL') : '',
+    'הערות בודק': a.notes || '',
+    'קו רוחב': a.lat ?? '',
+    'קו אורך': a.lng ?? '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = Object.keys(rows[0] || { a: 1 }).map(() => ({ wch: 18 }));
+  const wb = XLSX.utils.book_new();
+  wb.Workbook = { Views: [{ RTL: true }] };
+  XLSX.utils.book_append_sheet(wb, ws, 'בקשות');
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  downloadBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `בקשות-סגירה-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+async function downloadImportTemplate() {
+  const XLSX = await import('xlsx');
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['שם העסק', 'כתובת', 'סוג העסק', 'סוג הסגירה'],
+    ['קפה לדוגמה', 'שדרות הרצל 10, אשדוד', 'בית קפה', 'פרגוד'],
+    ['מסעדה לדוגמה', 'רוגוזין 5, אשדוד', 'מסעדה', 'עונתית'],
+  ]);
+  ws['!cols'] = [{ wch: 20 }, { wch: 28 }, { wch: 16 }, { wch: 14 }];
+  const wb = XLSX.utils.book_new();
+  wb.Workbook = { Views: [{ RTL: true }] };
+  XLSX.utils.book_append_sheet(wb, ws, 'עסקים');
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  downloadBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'תבנית-ייבוא-עסקים.xlsx');
+}
 
 const STATUSES = [
   { val: 'all', label: 'הכל' },
@@ -17,6 +63,7 @@ const SORT_OPTIONS = [
   { val: '-created_date', label: 'חדש לישן' },
   { val: 'created_date', label: 'ישן לחדש' },
   { val: 'business', label: 'לפי שם עסק' },
+  { val: '-updated_date', label: 'עודכן לאחרונה' },
 ];
 
 export default function ArchitectView() {
@@ -33,34 +80,39 @@ export default function ArchitectView() {
 
   const load = async () => {
     setLoading(true);
-    const data = await base44.entities.ClosureApplication.list('-created_date', 200);
-    setApps(data);
-    setLoading(false);
+    try {
+      setApps(await base44.entities.ClosureApplication.list('-created_date'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
+    e.target.value = '';
     if (!file) return;
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setUploadedFile({ name: file.name, url: file_url });
+      const uploaded = { name: file.name, url: file_url };
+      setUploadedFile(uploaded);
       setExtractedData(null);
+      await handleExtract(uploaded);
     } catch (err) {
-      alert('שגיאה בהעלאת הקובץ');
+      alert('שגיאה בקריאת הקובץ: ' + err.message);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleExtract = async () => {
-    if (!uploadedFile) return;
+  const handleExtract = async (fileToRead = uploadedFile) => {
+    if (!fileToRead) return;
     setExtracting(true);
     try {
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url: uploadedFile.url,
+        file_url: fileToRead.url,
         json_schema: {
           type: 'object',
           properties: {
@@ -98,7 +150,8 @@ export default function ArchitectView() {
   const handleCreateApplications = async () => {
     if (!extractedData || !Array.isArray(extractedData)) return;
     try {
-      const newApps = extractedData.map(data => ({
+      const ids = await nextApplicationIds(extractedData.length);
+      const newApps = extractedData.map((data, i) => ({
         business: data.business,
         address: data.address,
         business_type: data.business_type,
@@ -106,11 +159,11 @@ export default function ArchitectView() {
         owner: '',
         phone: '',
         email: '',
-        area: 0,
+        area: '',
         status: 'pending_owner',
         checklist: {},
-        submitted_at: new Date().toISOString(),
-        application_id: `ASH-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
+        application_id: ids[i],
+        history: [{ type: 'status_change', status: 'pending_owner', notes: 'נוצרה מייבוא קובץ', date: new Date().toISOString() }],
       }));
       await base44.entities.ClosureApplication.bulkCreate(newApps);
       alert(`נוצרו ${newApps.length} בקשות בהצלחה!`);
@@ -145,11 +198,23 @@ export default function ArchitectView() {
     filtered = [...filtered].sort((a, b) => (a.business || '').localeCompare(b.business || '', 'he'));
   } else if (sort === 'created_date') {
     filtered = [...filtered].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+  } else if (sort === '-updated_date') {
+    filtered = [...filtered].sort((a, b) => new Date(b.updated_date || 0) - new Date(a.updated_date || 0));
   }
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">מסלול עירייה — בדיקת בקשות</h2>
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">מסלול עירייה — בדיקת בקשות</h2>
+        <button
+          type="button"
+          onClick={() => exportApplicationsToExcel(filtered)}
+          disabled={filtered.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+        >
+          <Download className="w-4 h-4" /> ייצוא לאקסל ({filtered.length})
+        </button>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -171,32 +236,37 @@ export default function ArchitectView() {
 
       {/* File upload & extract section */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <Upload className="w-4 h-4" /> ייבוא בקשות ממסמך
-        </h3>
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <Upload className="w-4 h-4" /> ייבוא רשימת עסקים מאקסל
+          </h3>
+          <button type="button" onClick={downloadImportTemplate} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 underline">
+            <FileSpreadsheet className="w-3.5 h-3.5" /> הורדת תבנית לדוגמה
+          </button>
+        </div>
         <div className="flex flex-wrap gap-3 items-center">
           <label className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:bg-blue-100 transition text-sm text-blue-700">
             <Upload className="w-4 h-4" />
-            {uploading ? 'מעלה...' : uploadedFile ? `קובץ נבחר: ${uploadedFile.name}` : 'בחר קובץ Excel / CSV'}
+            {uploading || extracting ? 'קורא את הקובץ...' : uploadedFile ? `קובץ נבחר: ${uploadedFile.name}` : 'בחר קובץ Excel / CSV'}
             <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileUpload} disabled={uploading} />
           </label>
-          {uploadedFile && (
+          {extracting && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+          {extractedData && (
             <>
               <button
-                onClick={handleExtract}
-                disabled={extracting}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition text-sm font-medium disabled:opacity-50"
+                type="button"
+                onClick={handleCreateApplications}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
               >
-                {extracting ? <><Loader2 className="w-4 h-4 animate-spin" /> מנתח...</> : 'חלץ נתונים'}
+                צור {extractedData.length} בקשות
               </button>
-              {extractedData && (
-                <button
-                  onClick={handleCreateApplications}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
-                >
-                  צור בקשה
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => { setExtractedData(null); setUploadedFile(null); }}
+                className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700"
+              >
+                ביטול
+              </button>
             </>
           )}
         </div>
@@ -206,11 +276,11 @@ export default function ArchitectView() {
             <div className="space-y-2 max-h-60 overflow-auto">
               {extractedData.map((item, i) => (
                 <div key={i} className="bg-white rounded p-2 border border-green-200">
-                  <div className="grid grid-cols-2 gap-2 text-green-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-green-700">
                     <div><span className="font-medium">עסק:</span> {item.business}</div>
                     <div><span className="font-medium">כתובת:</span> {item.address}</div>
                     <div><span className="font-medium">סוג עסק:</span> {item.business_type}</div>
-                    <div><span className="font-medium">סוג סגירה:</span> {item.closure_type === 'type1' ? 'סגירת חורף/פרגוד' : 'סגירה עונתית'}</div>
+                    <div><span className="font-medium">סוג סגירה:</span> {typeLabel(item.closure_type)}</div>
                   </div>
                 </div>
               ))}
@@ -225,6 +295,7 @@ export default function ArchitectView() {
           {STATUSES.map(s => (
             <button
               key={s.val}
+              type="button"
               onClick={() => setFilter(s.val)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${filter === s.val ? 'bg-white shadow text-blue-800' : 'text-gray-500 hover:text-gray-800'}`}
             >
@@ -265,15 +336,16 @@ export default function ArchitectView() {
             <button
               key={app.id}
               onClick={() => navigate(`/architect/${app.id}`)}
-              className="w-full text-right bg-white rounded-xl border p-4 flex items-center gap-4 hover:border-blue-300 hover:shadow-sm transition-all border-gray-100"
+              type="button"
+              className="w-full text-right bg-white rounded-xl border p-4 flex items-center gap-3 sm:gap-4 hover:border-blue-300 hover:shadow-sm transition-all border-gray-100"
             >
               <StatusBadge status={app.status} />
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-gray-800">{app.business}</div>
-                <div className="text-sm text-gray-500 truncate">{app.address} · {app.owner}</div>
+                <div className="font-bold text-gray-800">{app.business || 'ללא שם'}</div>
+                <div className="text-sm text-gray-500 truncate">{[app.address, app.owner].filter(Boolean).join(' · ')}</div>
               </div>
               <div className="text-xs text-gray-400 flex-shrink-0 hidden sm:block">
-                {app.type === 'type1' ? 'עונתי' : 'קבוע'} · {app.area} מ״ר
+                {typeLabel(app.type)}{app.area ? ` · ${app.area} מ״ר` : ''}
               </div>
               <div className="text-xs text-gray-300 flex-shrink-0">{app.application_id}</div>
             </button>

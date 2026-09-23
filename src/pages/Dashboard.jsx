@@ -1,9 +1,19 @@
-import { useAuth } from '@/lib/AuthContext';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, HardHat, Users, ChevronLeft } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { STATUS_LABELS, STATUS_STYLES } from '@/components/closure/constants';
 
 export default function Dashboard() {
-  const { currentUser } = useAuth();
+  const [counts, setCounts] = useState(null);
+
+  useEffect(() => {
+    base44.entities.ClosureApplication.list().then(apps => {
+      const c = { total: apps.length };
+      Object.keys(STATUS_LABELS).forEach(s => { c[s] = apps.filter(a => a.status === s).length; });
+      setCounts(c);
+    }).catch(() => setCounts(null));
+  }, []);
 
   const tracks = [
     {
@@ -54,11 +64,20 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Welcome */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-800">
-          שלום, {currentUser?.full_name || 'משתמש'} 👋
-        </h2>
-        <p className="text-gray-500 mt-1">ברוך הבא למערכת ניהול סגירות עיריית אשדוד</p>
+        <h2 className="text-2xl font-bold text-gray-800">שלום 👋</h2>
+        <p className="text-gray-500 mt-1">ברוכים הבאים למערכת ניהול סגירות עיריית אשדוד</p>
       </div>
+
+      {counts && counts.total > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Object.entries(STATUS_LABELS).map(([status, label]) => (
+            <Link key={status} to="/architect" className={`rounded-xl border p-4 text-center hover:opacity-90 transition ${STATUS_STYLES[status]}`}>
+              <div className="text-3xl font-bold">{counts[status]}</div>
+              <div className="text-xs mt-1">{label}</div>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Mission statement */}
       <div className="bg-gradient-to-l from-blue-900 to-blue-700 text-white rounded-2xl p-6 shadow">

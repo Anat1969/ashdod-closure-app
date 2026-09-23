@@ -19,6 +19,8 @@ function openDb() {
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
+    // Ask the browser not to evict our data under storage pressure.
+    navigator.storage?.persist?.().catch(() => {});
   }
   return dbPromise;
 }
@@ -40,6 +42,15 @@ function reqToPromise(req) {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+}
+
+export async function storageEstimate() {
+  try {
+    const { usage = 0, quota = 0 } = (await navigator.storage?.estimate?.()) || {};
+    return { usage, quota };
+  } catch {
+    return { usage: 0, quota: 0 };
+  }
 }
 
 export function getAllRecords() {

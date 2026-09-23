@@ -1,12 +1,9 @@
+import { STATUS_LABELS, STATUS_STYLES } from './constants';
+
 export default function StatusBadge({ status }) {
-  const map = {
-    pending_owner: { label: 'ממתין לבעל עסק', cls: 'bg-blue-100 text-blue-700' },
-    pending_review: { label: 'ממתין לבדיקה', cls: 'bg-amber-100 text-amber-700' },
-    approved: { label: 'מאושר', cls: 'bg-green-100 text-green-700' },
-    rejected: { label: 'נדחה', cls: 'bg-red-100 text-red-600' },
-  };
-  const { label, cls } = map[status] || { label: status, cls: 'bg-gray-100 text-gray-600' };
+  const label = STATUS_LABELS[status] || status || 'לא ידוע';
+  const cls = STATUS_STYLES[status] || 'bg-gray-100 text-gray-600 border-gray-200';
   return (
-    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${cls}`}>{label}</span>
+    <span className={`text-xs font-medium px-2.5 py-1 rounded-full border whitespace-nowrap ${cls}`}>{label}</span>
   );
 }

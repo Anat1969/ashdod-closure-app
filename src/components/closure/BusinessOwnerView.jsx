@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import ApplicationWizard from './ApplicationWizard';
 import StatusBadge from './StatusBadge';
+import { typeLabel } from './constants';
 import { Plus, FileText, RefreshCw, ClipboardList, FormInput, Layers, Upload, Clock, CheckCircle2, Search } from 'lucide-react';
 
 const PROCESS_STEPS = [
@@ -29,22 +30,23 @@ export default function BusinessOwnerView() {
   const load = async () => {
     if (!currentUser) return;
     setLoading(true);
-    const data = await base44.entities.ClosureApplication.filter({ created_by: currentUser.email }, '-created_date', 50);
-    setApps(data);
-    setLoading(false);
+    try {
+      setApps(await base44.entities.ClosureApplication.filter({ created_by: currentUser.email }, '-updated_date'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSearch = async () => {
     if (!searchEmail.trim()) return;
     setSearching(true);
-    const byEmail = await base44.entities.ClosureApplication.filter({ email: searchEmail.trim() }, '-created_date', 50);
-    const byBusiness = await base44.entities.ClosureApplication.list('-created_date', 200);
     const q = searchEmail.trim().toLowerCase();
-    const combined = [...byEmail, ...byBusiness.filter(a =>
-      a.business?.toLowerCase().includes(q) || a.application_id?.toLowerCase().includes(q)
-    )];
-    const unique = [...new Map(combined.map(a => [a.id, a])).values()];
-    setSearchResults(unique);
+    const all = await base44.entities.ClosureApplication.list('-created_date');
+    setSearchResults(all.filter(a =>
+      a.email?.toLowerCase() === q ||
+      a.business?.toLowerCase().includes(q) ||
+      a.application_id?.toLowerCase().includes(q)
+    ));
     setSearching(false);
   };
 
@@ -95,7 +97,7 @@ export default function BusinessOwnerView() {
 
       {/* Search section */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">חיפוש בקשה קיימת לפי מייל / שם עסק</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">חיפוש בקשה קיימת לפי מייל / שם עסק / מספר בקשה</h3>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -165,7 +167,7 @@ export default function BusinessOwnerView() {
                 </div>
                 <p className="text-gray-500 text-sm">{app.address}</p>
                 <p className="text-gray-400 text-xs mt-1">
-                  {app.application_id} · {app.type === 'type1' ? 'סגירה עונתית/חורף' : 'מבנה קבוע/עונתי'} · {app.area} מ״ר
+                  {[app.application_id, typeLabel(app.type), app.area ? `${app.area} מ״ר` : null].filter(Boolean).join(' · ')}
                 </p>
                 {app.notes && (
                   <p className="text-amber-700 text-sm mt-2 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">

@@ -25,7 +25,7 @@ export default function Layout() {
     <>
       {visibleItems.map(item => {
         const Icon = item.icon;
-        const active = location.pathname === item.path;
+        const active = item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path);
         return (
           <Link
             key={item.path}
@@ -57,9 +57,9 @@ export default function Layout() {
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <img
-            src="https://upload.wikimedia.org/wikipedia/he/thumb/a/a9/Ashdod_COA.svg/120px-Ashdod_COA.svg.png"
-            alt="עיריית אשדוד"
-            className="h-10 w-10 object-contain bg-white rounded-full p-1 flex-shrink-0"
+            src={`${import.meta.env.BASE_URL}logo.svg`}
+            alt=""
+            className="h-10 w-10 flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold leading-tight">מנהל סגירות — עיריית אשדוד</h1>

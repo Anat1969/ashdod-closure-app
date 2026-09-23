@@ -1,61 +1,45 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from '../components/closure/StatusBadge';
+import FileLink, { FileThumb } from '../components/closure/FileLink';
 import {
-  ArrowRight, Phone, Mail, MapPin, Ruler, FileText, CheckCircle, XCircle,
-  AlertCircle, Send, ImageIcon, ExternalLink, User, Building2, Calendar,
-  CheckSquare, Square, ChevronDown, ChevronUp
+  checklistFor, DOCS_LABELS, DOCUMENTS_TYPE2, STATUS_ACTION_LABELS, typeLabel, missingFieldsOf, menuItemsOf,
+} from '../components/closure/constants';
+import { TILE_URL, TILE_ATTRIBUTION, hasCoords } from '@/lib/map';
+import {
+  ArrowRight, Mail, FileText, CheckCircle, XCircle,
+  AlertCircle, Send, ImageIcon, Building2, Calendar,
+  CheckSquare, ChevronDown, ChevronUp, Printer, Trash2, Copy
 } from 'lucide-react';
 
-const CHECKLIST_TYPE1 = [
-  { id: 'c1_1', text: 'קיים רישיון עסק בתוקף' },
-  { id: 'c1_2', text: 'ההצבה תואמת את תנאי רישיון העסק והמפה המצבית שהוגשה במסגרתו' },
-  { id: 'c1_3', text: 'נשמר מרווח של לפחות 2.5 מ"ר בין שפת המדרכה לדופן הסגירה' },
-  { id: 'c1_4', text: 'הפתח הוא לחזית בלבד ולא לצדדים' },
-  { id: 'c1_5', text: 'גובה הגג אינו עולה על גובה קומת הקרקע של המבנה' },
-  { id: 'c1_6', text: 'שיפוע הגג לפחות 1.5% עם כרכוב היקפי ישר' },
-  { id: 'c1_7', text: 'חומרים גמישים בלבד: שמשונית / ברזנט על שלד פרופילים אלומיניום / ברזל' },
-  { id: 'c1_8', text: 'ניהול מי גשמים בתעלת איסוף וצינור אנכי מוצנע' },
-  { id: 'c1_9', text: 'אין שינוי / ציפוי / הגבהה של המדרכה הציבורית' },
-  { id: 'c1_10', text: 'אין העברת תשתיות גלויה (חשמל, גז, מים)' },
-  { id: 'c1_11', text: 'קיים אישור מהנדס / הנדסאי מבנים בדבר יציבות הסגירה' },
-  { id: 'c1_12', text: 'קיים אישור יועץ בטיחות לסגירה' },
-  { id: 'c1_13', text: 'הפרגוד יפורק עם תום תקופת ההרשאה' },
-];
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
-const CHECKLIST_TYPE2 = [
-  { id: 'c2_1', text: 'קיים רישיון עסק בתוקף' },
-  { id: 'c2_2', text: 'ההצבה תואמת את תנאי רישיון העסק והמפה המצבית שהוגשה במסגרתו' },
-  { id: 'c2_3', text: 'נשמר מרווח של לפחות 2.5 מ"ר בין שפת המדרכה לדופן הסגירה' },
-  { id: 'c2_4', text: 'הפתח הוא לחזית בלבד ולא לצדדים' },
-  { id: 'c2_5', text: 'גובה הגג אינו עולה על גובה קומת הקרקע של המבנה' },
-  { id: 'c2_6', text: 'שיפוע הגג לפחות 1.5% עם כרכוב היקפי ישר' },
-  { id: 'c2_7', text: 'חומרים עמידים: שלד אלומיניום / ברזל עם מילואה מזכוכית בעלת 90% שקיפות לפחות' },
-  { id: 'c2_8', text: 'ניהול מי גשמים בתעלת איסוף וצינור אנכי מוצנע' },
-  { id: 'c2_9', text: 'אין שינוי / ציפוי / הגבהה של המדרכה הציבורית' },
-  { id: 'c2_10', text: 'אין העברת תשתיות גלויה (חשמל, גז, מים)' },
-  { id: 'c2_11', text: 'קיים אישור מהנדס / הנדסאי מבנים בדבר יציבות הסגירה' },
-  { id: 'c2_12', text: 'קיים אישור יועץ בטיחות לסגירה' },
-  { id: 'c2_13', text: 'קיים אישור יועץ נגישות מתו"ס לאנשים בעלי מוגבלויות' },
-  { id: 'c2_14', text: 'שטח הסגירה מעל 30 מ"ר — בוצע תיאום מול אדריכלית העיר' },
-];
-
-const DOCS_LABELS = [
-  { key: 'business_photo', label: 'תמונת העסק' },
-  { key: 'closure_simulation', label: 'הדמיית הסגירה' },
-  { key: 'site_plan', label: 'תוכנית העמדה' },
-  { key: 'facade_plan', label: 'תוכנית חזית' },
-  { key: 'section_plan', label: 'תוכנית חתך' },
-];
+function printReport(title, text) {
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('הדפדפן חסם את חלון ההדפסה. אפשרו חלונות קופצים לאתר זה.');
+    return;
+  }
+  win.document.write(`<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+    <style>body{font-family:Arial,sans-serif;margin:32px;color:#111}pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.7}</style>
+    </head><body><pre>${escapeHtml(text)}</pre></body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
 
 function Section({ title, icon: Icon, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition"
+        className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-gray-50 transition"
       >
         <h3 className="font-bold text-gray-700 flex items-center gap-2">
           {Icon && <Icon className="w-5 h-5 text-blue-500" />}
@@ -63,15 +47,15 @@ function Section({ title, icon: Icon, children, defaultOpen = true }) {
         </h3>
         {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
       </button>
-      {open && <div className="px-6 pb-6 border-t border-gray-100 pt-4">{children}</div>}
+      {open && <div className="px-4 sm:px-6 pb-6 border-t border-gray-100 pt-4">{children}</div>}
     </div>
   );
 }
 
 function FieldRow({ label, value, missing }) {
   return (
-    <div className={`flex items-start gap-2 py-1.5 border-b border-gray-50 last:border-0 text-sm`}>
-      <span className="text-gray-500 min-w-[160px] flex-shrink-0">{label}:</span>
+    <div className="flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-2 py-1.5 border-b border-gray-50 last:border-0 text-sm">
+      <span className="text-gray-500 sm:min-w-[160px] flex-shrink-0">{label}:</span>
       {missing || !value ? (
         <span className="text-red-500 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> לא מולא</span>
       ) : (
@@ -88,39 +72,30 @@ export default function ApplicationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
-  const [emailTo, setEmailTo] = useState('owner');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   useEffect(() => {
-    base44.entities.ClosureApplication.filter({ id })
-      .then(data => {
-        const found = data[0];
+    base44.entities.ClosureApplication.get(id)
+      .then(found => {
         setApp(found);
         setNotes(found?.notes || '');
-        setLoading(false);
-      });
+      })
+      .catch(() => setApp(null))
+      .finally(() => setLoading(false));
   }, [id]);
 
+  const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate('/architect'));
+
   const buildReportText = (currentApp, currentNotes) => {
-    const checklist = currentApp.type === 'type1' ? CHECKLIST_TYPE1 : CHECKLIST_TYPE2;
+    const checklist = checklistFor(currentApp.type);
     const checked = checklist.filter(c => currentApp.checklist?.[c.id]);
     const unchecked = checklist.filter(c => !currentApp.checklist?.[c.id]);
     const uploaded = DOCS_LABELS.filter(d => currentApp[d.key]);
     const missing = DOCS_LABELS.filter(d => !currentApp[d.key]);
-    const missingF = [];
-    if (!currentApp.business) missingF.push('שם העסק');
-    if (!currentApp.owner) missingF.push('שם בעל העסק');
-    if (!currentApp.address) missingF.push('כתובת');
-    if (!currentApp.phone) missingF.push('טלפון');
-    if (!currentApp.email) missingF.push('דואל');
-    if (!currentApp.area) missingF.push('שטח');
-    if (!currentApp.lat || !currentApp.lng) missingF.push('מיקום על המפה');
-    if (!currentApp.description) missingF.push('תיאור הבקשה');
-
-    const statusLabel = { approved: 'אושרה', rejected: 'נדחתה', pending_owner: 'ממתינה לתיקון', pending_review: 'בבדיקה' }[currentApp.status] || currentApp.status;
-    const typeLabel = currentApp.type === 'type1' ? 'סגירת חורף / פרגוד' : 'סגירה עונתית';
+    const missingF = missingFieldsOf(currentApp);
+    const statusLabel = STATUS_ACTION_LABELS[currentApp.status] || currentApp.status;
     const line = '═'.repeat(52);
     const thin = '─'.repeat(52);
 
@@ -137,7 +112,7 @@ export default function ApplicationDetailPage() {
       `א. פרטי הבקשה`,
       thin,
       `שם העסק   : ${currentApp.business || 'לא מולא'}`,
-      `סוג סגירה  : ${typeLabel}`,
+      `סוג סגירה  : ${typeLabel(currentApp.type)}`,
       `שטח        : ${currentApp.area ? currentApp.area + ' מ"ר' : 'לא מולא'}`,
       `כתובת     : ${currentApp.address || 'לא מולא'}`,
       `מיקום      : ${currentApp.lat && currentApp.lng ? `${Number(currentApp.lat).toFixed(5)}, ${Number(currentApp.lng).toFixed(5)}` : 'לא סומן'}`,
@@ -194,18 +169,50 @@ export default function ApplicationDetailPage() {
   };
 
   const handleStatus = async (newStatus) => {
+    if (newStatus === 'rejected' && !notes.trim() && !window.confirm('לדחות את הבקשה בלי לכתוב נימוק בהערות?')) return;
     setSaving(true);
-    const report = buildReportText(app, notes);
-    const statusLabel = { approved: 'אושרה', rejected: 'נדחתה', pending_owner: 'הוחזרה לתיקון', pending_review: 'בבדיקה' }[newStatus] || newStatus;
-    const history = addHistory(app, {
-      type: 'status_change',
-      status: newStatus,
-      notes,
-      report_summary: report,
-    });
-    await base44.entities.ClosureApplication.update(app.id, { status: newStatus, notes, history });
-    setApp(prev => ({ ...prev, status: newStatus, notes, history }));
-    setSaving(false);
+    try {
+      const report = buildReportText({ ...app, status: newStatus }, notes);
+      const history = addHistory(app, {
+        type: 'status_change',
+        status: newStatus,
+        notes,
+        report_summary: report,
+      });
+      await base44.entities.ClosureApplication.update(app.id, { status: newStatus, notes, history });
+      setApp(prev => ({ ...prev, status: newStatus, notes, history }));
+    } catch (err) {
+      alert('שגיאה בעדכון הסטטוס: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveNotes = async () => {
+    setSaving(true);
+    try {
+      await base44.entities.ClosureApplication.update(app.id, { notes });
+      setApp(prev => ({ ...prev, notes }));
+    } catch (err) {
+      alert('שגיאה בשמירת ההערות: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`למחוק לצמיתות את הבקשה של "${app.business}" (${app.application_id || ''})?\nלא ניתן לשחזר את הפעולה אלא מגיבוי.`)) return;
+    await base44.entities.ClosureApplication.delete(app.id);
+    navigate('/architect', { replace: true });
+  };
+
+  const handleCopyReport = async () => {
+    try {
+      await navigator.clipboard.writeText(buildReportText(app, notes));
+      alert('הדוח הועתק. אפשר להדביק אותו בכל מקום.');
+    } catch {
+      alert('לא ניתן להעתיק אוטומטית בדפדפן זה');
+    }
   };
 
   const buildEmailBody = () => {
@@ -219,13 +226,13 @@ export default function ApplicationDetailPage() {
     setSendingEmail(true);
     const body = buildEmailBody();
 
-    if (app.email) {
-      await base44.integrations.Core.SendEmail({
-        to: app.email,
-        subject: emailSubject,
-        body,
-      });
-    }
+    // Long reports may be cut in the mail program, so keep a full copy on the clipboard too.
+    try { await navigator.clipboard.writeText(body); } catch { /* clipboard not available */ }
+    await base44.integrations.Core.SendEmail({
+      to: app.email,
+      subject: emailSubject,
+      body,
+    });
 
     const history = addHistory(app, {
       type: 'email_sent',
@@ -246,7 +253,7 @@ export default function ApplicationDetailPage() {
   if (loading) return <div className="text-center py-20 text-gray-400">טוען...</div>;
   if (!app) return <div className="text-center py-20 text-gray-400">הבקשה לא נמצאה</div>;
 
-  const checklist = app.type === 'type1' ? CHECKLIST_TYPE1 : CHECKLIST_TYPE2;
+  const checklist = checklistFor(app.type);
   const checkedCount = checklist.filter(c => app.checklist?.[c.id]).length;
   const uncheckedItems = checklist.filter(c => !app.checklist?.[c.id]);
 
@@ -254,29 +261,23 @@ export default function ApplicationDetailPage() {
   const missingDocs = DOCS_LABELS.filter(d => !app[d.key]);
   const additionalPhotos = app.additional_photos || [];
 
-  const missingFields = [];
-  if (!app.business) missingFields.push('שם העסק');
-  if (!app.owner) missingFields.push('שם בעל העסק');
-  if (!app.address) missingFields.push('כתובת');
-  if (!app.phone) missingFields.push('טלפון');
-  if (!app.email) missingFields.push('דוא"ל');
-  if (!app.area) missingFields.push('שטח');
-  if (!app.lat || !app.lng) missingFields.push('מיקום על המפה');
-  if (!app.description) missingFields.push('תיאור הבקשה');
+  const missingFields = missingFieldsOf(app);
+  const menuItems = menuItemsOf(app);
+  const type2Docs = app.type === 'type2' ? DOCUMENTS_TYPE2.filter(d => app.docs_files?.[d.id] || app.docs_checklist?.[d.id]) : [];
 
   return (
     <div dir="rtl" className="max-w-3xl mx-auto space-y-5">
       {/* Back */}
-      <button onClick={() => navigate('/architect')} className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium">
-        <ArrowRight className="w-4 h-4" /> חזרה לרשימת הבקשות
+      <button type="button" onClick={goBack} className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium">
+        <ArrowRight className="w-4 h-4" /> חזרה
       </button>
 
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">{app.business}</h2>
-            <p className="text-gray-400 text-sm mt-0.5">{app.application_id} · {app.type === 'type1' ? 'סגירת חורף / פרגוד' : 'סגירה עונתית'} · {app.area} מ״ר</p>
+            <p className="text-gray-400 text-sm mt-0.5">{app.application_id} · {typeLabel(app.type)}{app.area ? ` · ${app.area} מ״ר` : ''}</p>
             {app.submitted_at && (
               <p className="text-gray-400 text-xs mt-1">הוגשה: {new Date(app.submitted_at).toLocaleDateString('he-IL')}</p>
             )}
@@ -309,7 +310,15 @@ export default function ApplicationDetailPage() {
         <FieldRow label="טלפון" value={app.phone} />
         <FieldRow label='דוא"ל' value={app.email} />
         <FieldRow label="שטח" value={app.area ? `${app.area} מ״ר` : null} />
-        <FieldRow label="מיקום" value={app.lat ? `${Number(app.lat).toFixed(5)}, ${Number(app.lng).toFixed(5)}` : null} />
+        <FieldRow label="מיקום" value={hasCoords(app) ? `${Number(app.lat).toFixed(5)}, ${Number(app.lng).toFixed(5)}` : null} />
+        {hasCoords(app) && (
+          <div className="mt-3 rounded-xl overflow-hidden border border-gray-200 relative z-0" style={{ height: 200 }}>
+            <MapContainer center={[Number(app.lat), Number(app.lng)]} zoom={17} className="w-full h-full" scrollWheelZoom={false}>
+              <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
+              <Marker position={[Number(app.lat), Number(app.lng)]} />
+            </MapContainer>
+          </div>
+        )}
         {app.description && (
           <div className="mt-3 bg-gray-50 rounded-xl p-3 text-sm text-gray-700">
             <span className="font-medium text-gray-600 block mb-1">תיאור הבקשה:</span>
@@ -348,8 +357,13 @@ export default function ApplicationDetailPage() {
           <FieldRow label="סוג נכס" value={app.property_type === 'private' ? 'שטח פרטי' : 'שטח ציבורי'} />
           <FieldRow label="גוש" value={app.block} />
           <FieldRow label="חלקה" value={app.parcel} />
+          <FieldRow label="כתובת הנכס" value={app.property_address} />
           <FieldRow label="תקופת שימוש" value={app.usage_period} />
+          <FieldRow label="אופציה" value={app.usage_option} />
           <FieldRow label="מטרת השימוש" value={app.usage_purpose} />
+          {(app.authorized_name || app.authorized_phone) && (
+            <FieldRow label="מורשה חתימה" value={[app.authorized_name, app.authorized_phone, app.authorized_email].filter(Boolean).join(' · ')} />
+          )}
         </Section>
       )}
 
@@ -384,25 +398,36 @@ export default function ApplicationDetailPage() {
           <div className="space-y-2 mb-4">
             <p className="text-sm font-semibold text-gray-600 mb-2">מסמכים שהועלו:</p>
             {uploadedDocs.map(d => (
-              <a key={d.key} href={app[d.key]} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm text-green-800 hover:bg-green-100 transition">
+              <FileLink key={d.key} url={app[d.key]}
+                className="w-full flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm text-green-800 hover:bg-green-100 transition text-right">
                 <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
                 <span className="flex-1">{d.label}</span>
-                <ExternalLink className="w-3.5 h-3.5 text-green-500" />
-              </a>
+              </FileLink>
             ))}
             {additionalPhotos.length > 0 && (
               <div>
                 <p className="text-xs text-gray-500 mb-2 mt-3">תמונות נוספות ({additionalPhotos.length}):</p>
                 <div className="flex flex-wrap gap-2">
                   {additionalPhotos.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                      <img src={url} className="w-20 h-20 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition" />
-                    </a>
+                    <FileThumb key={i} url={url} alt={`תמונה ${i + 1}`} />
                   ))}
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {type2Docs.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-semibold text-gray-600 mb-2">מסמכים נדרשים (סגירה עונתית):</p>
+            <div className="space-y-1.5">
+              {type2Docs.map(d => (
+                <div key={d.id} className="flex items-center gap-2 text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-2">
+                  {app.docs_checklist?.[d.id] ? <CheckCircle className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-gray-300" />}
+                  <span className="flex-1">{d.text}</span>
+                  {app.docs_files?.[d.id] ? <FileLink url={app.docs_files[d.id]}>פתח קובץ</FileLink> : <span className="text-xs text-gray-400">לא צורף קובץ</span>}
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {missingDocs.length > 0 && (
@@ -420,12 +445,12 @@ export default function ApplicationDetailPage() {
       </Section>
 
       {/* Menu items */}
-      {app.menu_items?.length > 0 && (
-        <Section title={`תפריט עסק (${app.menu_items.length} פריטים)`} icon={FileText} defaultOpen={false}>
+      {menuItems.length > 0 && (
+        <Section title={`תפריט עסק (${menuItems.length} פריטים)`} icon={FileText} defaultOpen={false}>
           <div className="space-y-2">
-            {app.menu_items.map((item, i) => (
+            {menuItems.map((item, i) => (
               <div key={i} className="flex items-center gap-3 border border-gray-100 rounded-xl p-3">
-                {item.image && <img src={item.image} className="w-12 h-12 object-cover rounded-lg flex-shrink-0" />}
+                {item.image && <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-lg flex-shrink-0" />}
                 <div className="flex-1 text-sm">
                   <span className="font-medium text-gray-800">{item.name}</span>
                 </div>
@@ -441,7 +466,7 @@ export default function ApplicationDetailPage() {
         <Section title={`היסטוריית בקשה (${app.history.length} אירועים)`} icon={Calendar} defaultOpen={false}>
           <div className="space-y-3">
             {[...app.history].reverse().map((entry, i) => {
-              const statusLabel = { approved: 'אושרה', rejected: 'נדחתה', pending_owner: 'הוחזרה לתיקון', pending_review: 'בבדיקה' }[entry.status] || entry.status;
+              const statusLabel = STATUS_ACTION_LABELS[entry.status] || entry.status;
               return (
                 <div key={i} className={`rounded-xl border p-3 text-sm ${
                   entry.type === 'email_sent' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
@@ -469,10 +494,22 @@ export default function ApplicationDetailPage() {
       )}
 
       {/* Decision & Email */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-        <h3 className="font-bold text-gray-700 flex items-center gap-2">
-          <CheckSquare className="w-5 h-5 text-blue-500" /> חוות דעת ואישור
-        </h3>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h3 className="font-bold text-gray-700 flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-blue-500" /> חוות דעת ואישור
+          </h3>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => printReport(`דוח בדיקה — ${app.business || ''}`, buildReportText(app, notes))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+              <Printer className="w-4 h-4" /> הדפס / PDF
+            </button>
+            <button type="button" onClick={handleCopyReport}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+              <Copy className="w-4 h-4" /> העתק דוח
+            </button>
+          </div>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-1.5">הערות לבעל העסק / לעורך הבקשה</label>
@@ -483,18 +520,25 @@ export default function ApplicationDetailPage() {
             rows={4}
             className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
+          {notes !== (app.notes || '') && (
+            <button type="button" onClick={handleSaveNotes} disabled={saving}
+              className="mt-2 text-sm px-3 py-1.5 rounded-lg bg-gray-800 text-white hover:bg-gray-900 disabled:opacity-50">
+              שמור הערות
+            </button>
+          )}
         </div>
 
         {/* Email section */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
           <p className="text-sm font-semibold text-blue-800 flex items-center gap-1.5"><Mail className="w-4 h-4" /> שליחת מייל עם דוח בדיקה</p>
-          <p className="text-xs text-blue-600">אל: {app.email || 'לא הוזן'}</p>
+          <p className="text-xs text-blue-600">אל: {app.email || 'לא הוזן'} · ייפתח בתוכנת הדואר שלך, והדוח המלא יועתק גם ללוח</p>
           <button
+            type="button"
             onClick={() => setShowEmailPreview(true)}
             disabled={!app.email || emailSent}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition ${emailSent ? 'bg-green-600 text-white' : 'bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-50'}`}
           >
-            {emailSent ? <><CheckCircle className="w-4 h-4" /> נשלח!</> : <><Mail className="w-4 h-4" /> צפה ושלח מייל</>}
+            {emailSent ? <><CheckCircle className="w-4 h-4" /> נפתח בתוכנת הדואר</> : <><Mail className="w-4 h-4" /> צפה ושלח מייל</>}
           </button>
         </div>
 
@@ -526,7 +570,7 @@ export default function ApplicationDetailPage() {
                   disabled={sendingEmail}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-700 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-50 transition"
                 >
-                  {sendingEmail ? 'שולח...' : <><Send className="w-4 h-4" /> שלח מייל</>}
+                  {sendingEmail ? 'פותח...' : <><Send className="w-4 h-4" /> פתח בתוכנת הדואר</>}
                 </button>
               </div>
             </div>
@@ -536,6 +580,7 @@ export default function ApplicationDetailPage() {
         {/* Actions */}
         <div className="flex gap-3 flex-wrap pt-2 border-t border-gray-100">
           <button
+            type="button"
             onClick={() => handleStatus('approved')}
             disabled={saving || app.status === 'approved'}
             className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition"
@@ -543,6 +588,7 @@ export default function ApplicationDetailPage() {
             <CheckCircle className="w-4 h-4" /> אשר בקשה
           </button>
           <button
+            type="button"
             onClick={() => handleStatus('pending_owner')}
             disabled={saving}
             className="flex items-center gap-2 bg-amber-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-amber-600 disabled:opacity-50 transition"
@@ -550,11 +596,19 @@ export default function ApplicationDetailPage() {
             <AlertCircle className="w-4 h-4" /> החזר לתיקון
           </button>
           <button
+            type="button"
             onClick={() => handleStatus('rejected')}
             disabled={saving || app.status === 'rejected'}
             className="flex items-center gap-2 bg-red-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 disabled:opacity-50 transition"
           >
             <XCircle className="w-4 h-4" /> דחה בקשה
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="flex items-center gap-2 text-red-600 border border-red-200 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-red-50 transition sm:mr-auto"
+          >
+            <Trash2 className="w-4 h-4" /> מחק בקשה
           </button>
         </div>
       </div>

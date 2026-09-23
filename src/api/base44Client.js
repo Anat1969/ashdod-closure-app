@@ -87,7 +87,7 @@ function readAsDataUrl(blob) {
 }
 
 // Shrinks large photos so the browser storage doesn't fill up.
-async function compressImage(file, maxSize = 1600, quality = 0.82) {
+async function compressImage(file, maxSize = 2400, quality = 0.85) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((resolve, reject) => {
@@ -101,7 +101,11 @@ async function compressImage(file, maxSize = 1600, quality = 0.82) {
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(img.width * scale);
     canvas.height = Math.round(img.height * scale);
-    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    const ctx = canvas.getContext('2d');
+    // White background so transparent PNG plans don't turn black as JPEG
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/jpeg', quality);
   } finally {
     URL.revokeObjectURL(url);
@@ -134,7 +138,8 @@ function pickColumn(row, aliases) {
 function normalizeClosureType(value) {
   if (!value) return 'type1';
   if (value === 'type1' || value === 'type2') return value;
-  if (/קבוע|type2|2/.test(value)) return 'type2';
+  // type2 = seasonal closure (סגירה עונתית), type1 = winter closure / screen (פרגוד)
+  if (/עונתי|קבוע|type2|^\s*2\s*$/.test(value)) return 'type2';
   return 'type1';
 }
 
@@ -150,7 +155,7 @@ async function extractDataFromUploadedFile({ file_url }) {
   }
   const XLSX = await import('xlsx');
   const buffer = await (await fetch(file_url)).arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array' });
+  const workbook = XLSX.read(buffer, { type: 'array', codepage: 65001 });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
   const businesses = rows
@@ -170,7 +175,9 @@ async function extractDataFromUploadedFile({ file_url }) {
 // Replaces server-side email: opens the user's mail program with the message filled in.
 async function sendEmail({ to, subject, body }) {
   const maxBody = 1800;
-  const text = body.length > maxBody ? body.slice(0, maxBody) + '\n...' : body;
+  const text = body.length > maxBody
+    ? body.slice(0, maxBody) + '\n...\n(ההודעה קוצרה — הדוח המלא הועתק ללוח, אפשר להדביק אותו כאן)'
+    : body;
   const href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
   window.location.href = href;
   return { ok: true };

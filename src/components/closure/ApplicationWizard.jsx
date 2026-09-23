@@ -1,78 +1,45 @@
-import { useState } from 'react';
-import { Upload, X, ImageIcon, ChevronRight, ChevronLeft, Send, Plus, Trash2, UtensilsCrossed } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Upload, X, ImageIcon, ChevronRight, ChevronLeft, Send, Plus, Trash2, UtensilsCrossed, Save } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { nextApplicationId } from '@/lib/applicationId';
 import MapPicker from './MapPicker';
-
-const CHECKLIST_TYPE1 = [
-  { id: 'c1_1', text: 'קיים רישיון עסק בתוקף' },
-  { id: 'c1_2', text: 'ההצבה תואמת את תנאי רישיון העסק והמפה המצבית שהוגשה במסגרתו' },
-  { id: 'c1_3', text: 'נשמר מרווח של לפחות 2.5 מ"ר בין שפת המדרכה לדופן הסגירה' },
-  { id: 'c1_4', text: 'הפתח הוא לחזית בלבד ולא לצדדים' },
-  { id: 'c1_5', text: 'גובה הגג אינו עולה על גובה קומת הקרקע של המבנה' },
-  { id: 'c1_6', text: 'שיפוע הגג לפחות 1.5% עם כרכוב היקפי ישר' },
-  { id: 'c1_7', text: 'חומרים גמישים בלבד: שמשונית / ברזנט על שלד פרופילים אלומיניום / ברזל' },
-  { id: 'c1_8', text: 'ניהול מי גשמים בתעלת איסוף וצינור אנכי מוצנע' },
-  { id: 'c1_9', text: 'אין שינוי / ציפוי / הגבהה של המדרכה הציבורית' },
-  { id: 'c1_10', text: 'אין העברת תשתיות גלויה (חשמל, גז, מים)' },
-  { id: 'c1_11', text: 'קיים אישור מהנדס / הנדסאי מבנים בדבר יציבות הסגירה' },
-  { id: 'c1_12', text: 'קיים אישור יועץ בטיחות לסגירה' },
-  { id: 'c1_13', text: 'הפרגוד יפורק עם תום תקופת ההרשאה' },
-];
-
-const CHECKLIST_TYPE2 = [
-  { id: 'c2_1', text: 'קיים רישיון עסק בתוקף' },
-  { id: 'c2_2', text: 'ההצבה תואמת את תנאי רישיון העסק והמפה המצבית שהוגשה במסגרתו' },
-  { id: 'c2_3', text: 'נשמר מרווח של לפחות 2.5 מ"ר בין שפת המדרכה לדופן הסגירה' },
-  { id: 'c2_4', text: 'הפתח הוא לחזית בלבד ולא לצדדים' },
-  { id: 'c2_5', text: 'גובה הגג אינו עולה על גובה קומת הקרקע של המבנה' },
-  { id: 'c2_6', text: 'שיפוע הגג לפחות 1.5% עם כרכוב היקפי ישר' },
-  { id: 'c2_7', text: 'חומרים עמידים: שלד אלומיניום / ברזל עם מילואה מזכוכית בעלת 90% שקיפות לפחות' },
-  { id: 'c2_8', text: 'ניהול מי גשמים בתעלת איסוף וצינור אנכי מוצנע' },
-  { id: 'c2_9', text: 'אין שינוי / ציפוי / הגבהה של המדרכה הציבורית' },
-  { id: 'c2_10', text: 'אין העברת תשתיות גלויה (חשמל, גז, מים)' },
-  { id: 'c2_11', text: 'קיים אישור מהנדס / הנדסאי מבנים בדבר יציבות הסגירה' },
-  { id: 'c2_12', text: 'קיים אישור יועץ בטיחות לסגירה' },
-  { id: 'c2_13', text: 'קיים אישור יועץ נגישות מתו"ס לאנשים בעלי מוגבלויות' },
-  { id: 'c2_14', text: 'שטח הסגירה מעל 30 מ"ר — בוצע תיאום מול אדריכלית העיר' },
-];
-
-// Official declarations per type
-const DECLARATIONS_TYPE1 = [
-  { id: 'd1_1', text: 'אני מתחייב להקים את הפרגוד על פי התכנית המאושרת ורק לאחר קבלת היתר כחוק.' },
-  { id: 'd1_2', text: 'אני מצהיר שקראתי את ההנחיות ואת התנאים להצבת פרגודים הנדרשים ע"י עיריית אשדוד ואני מתחייב לפעול על פיהם.' },
-  { id: 'd1_3', text: 'אני מתחייב לקבל את הסכמת כל בעלי הזכויות בשטח המבוקש ואני משחרר את העירייה מכל אחריות בקשר לכך.' },
-  { id: 'd1_4', text: 'אני מתחייב לפצות את העירייה בגין כל תביעה שיש לה קשר להצבת הפרגוד.' },
-  { id: 'd1_5', text: 'אני מתחייב לאפשר מעבר להולכי הרגל ותנועה חופשית בשטח.' },
-  { id: 'd1_6', text: 'אני מתחייב לפרק את הפרגוד עם תום תקופת ההרשאה, או על פי דרישה למי שהוסמך לכך ע"י ראש העיר.' },
-  { id: 'd1_7', text: 'ידוע לי כי אי מילוי תנאי התחייבות זו יכול לשמש עילה לאי מתן ההרשאה להצבת פרגוד בעונה הבאה.' },
-];
-
-const DOCUMENTS_TYPE2 = [
-  { id: 'doc2_1', text: 'רישיון עסק בתוקף' },
-  { id: 'doc2_2', text: 'עמידה בתנאי ההנחיות המרחביות' },
-  { id: 'doc2_3', text: 'סקיצה עם גודל השטח' },
-  { id: 'doc2_4', text: 'אישור קונסטרוקטור / אישור מהנדס מבנים' },
-  { id: 'doc2_5', text: 'טופס דיווח על ביצוע עבודה הפטורה מהיתר' },
-];
+import FileLink, { FileThumb } from './FileLink';
+import { checklistFor, DECLARATIONS_TYPE1, DOCUMENTS_TYPE2, typeLabel, isValidEmail } from './constants';
 
 const STEPS = ['סוג סגירה', 'טופס רשמי', 'רשימת תנאים', 'מסמכים ותמונות', 'תפריט עסק', 'אישור והגשה'];
 
+const MAX_FILE_MB = 15;
+
+// Returns the stored file URL, or null (after telling the user) when the upload fails.
 async function uploadFile(file) {
-  const { file_url } = await base44.integrations.Core.UploadFile({ file });
-  return file_url;
+  if (file.size > MAX_FILE_MB * 1024 * 1024) {
+    alert(`הקובץ "${file.name}" גדול מדי (מעל ${MAX_FILE_MB}MB)`);
+    return null;
+  }
+  try {
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    return file_url;
+  } catch (err) {
+    alert(`שגיאה בהעלאת הקובץ "${file.name}": ${err.message}`);
+    return null;
+  }
 }
 
-function Field({ label, value, onChange, type = 'text', placeholder = '' }) {
+function Field({ label, value, onChange, type = 'text', placeholder = '', required = false, error = '' }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}{required && <span className="text-red-500 mr-0.5">*</span>}
+      </label>
       <input
         type={type}
-        value={value}
+        value={value ?? ''}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+        dir={type === 'email' || type === 'tel' ? 'ltr' : undefined}
+        className={`w-full border rounded-lg px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-300 ${error ? 'border-red-300' : 'border-gray-200'}`}
       />
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
     </div>
   );
 }
@@ -84,8 +51,9 @@ function CheckItem({ id, text, checked, onChange, fileUrl, onFileChange }) {
     if (!file) return;
     setUploading(true);
     const url = await uploadFile(file);
-    onFileChange && onFileChange(id, url);
+    if (url) onFileChange?.(id, url);
     setUploading(false);
+    e.target.value = '';
   };
   return (
     <div className={`p-3 rounded-lg border transition-all ${checked ? 'border-green-300 bg-green-50' : 'border-gray-200 hover:border-blue-200'}`}>
@@ -102,9 +70,8 @@ function CheckItem({ id, text, checked, onChange, fileUrl, onFileChange }) {
         <div className="mt-2 mr-7">
           {fileUrl ? (
             <div className="flex items-center gap-2">
-              <a href={fileUrl} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-blue-600 underline truncate max-w-[200px]">קובץ מצורף ✓</a>
-              <button onClick={() => onFileChange(id, null)} className="text-red-400 hover:text-red-600 text-xs">הסר</button>
+              <FileLink url={fileUrl}>קובץ מצורף ✓</FileLink>
+              <button type="button" onClick={() => onFileChange(id, null)} className="text-red-400 hover:text-red-600 text-xs">הסר</button>
             </div>
           ) : (
             <label className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-400 hover:text-blue-600 transition">
@@ -121,14 +88,17 @@ function CheckItem({ id, text, checked, onChange, fileUrl, onFileChange }) {
 
 function FileUpload({ label, value, onChange, multiple }) {
   const [uploading, setUploading] = useState(false);
-  const handle = async (files) => {
+  const handle = async (input) => {
+    const files = [...input.files];
+    input.value = '';
+    if (!files.length) return;
     setUploading(true);
     if (multiple) {
-      const urls = await Promise.all([...files].map(uploadFile));
+      const urls = (await Promise.all(files.map(uploadFile))).filter(Boolean);
       onChange([...(value || []), ...urls]);
     } else {
       const url = await uploadFile(files[0]);
-      onChange(url);
+      if (url) onChange(url);
     }
     setUploading(false);
   };
@@ -140,51 +110,33 @@ function FileUpload({ label, value, onChange, multiple }) {
           <div className="flex flex-wrap gap-2">
             {(value || []).map((url, i) => (
               <div key={i} className="relative">
-                <img src={url} className="w-20 h-20 object-cover rounded-lg border" />
-                <button onClick={() => onChange((value || []).filter((_, j) => j !== i))}
+                <FileThumb url={url} />
+                <button type="button" onClick={() => onChange((value || []).filter((_, j) => j !== i))}
                   className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"><X className="w-2.5 h-2.5" /></button>
               </div>
             ))}
           </div>
           <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-gray-200 rounded-lg px-4 py-3 hover:border-blue-300 transition text-sm text-gray-500">
             <Upload className="w-4 h-4" /> {uploading ? 'מעלה...' : 'הוסף תמונות'}
-            <input type="file" accept="image/*" multiple className="hidden" disabled={uploading} onChange={e => handle(e.target.files)} />
+            <input type="file" accept="image/*" multiple className="hidden" disabled={uploading} onChange={e => handle(e.target)} />
           </label>
         </div>
       ) : (
         <div>
           {value ? (
             <div className="relative inline-block">
-              <img src={value} className="w-full max-h-40 object-contain rounded-lg border" />
-              <button onClick={() => onChange(null)} className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"><X className="w-3 h-3" /></button>
+              <FileThumb url={value} className="w-40 h-32" />
+              <button type="button" onClick={() => onChange(null)} className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"><X className="w-3 h-3" /></button>
             </div>
           ) : (
             <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-gray-200 rounded-lg px-4 py-3 hover:border-blue-300 transition text-sm text-gray-500">
               <Upload className="w-4 h-4" /> {uploading ? 'מעלה...' : 'בחר קובץ'}
-              <input type="file" accept="image/*,application/pdf" className="hidden" disabled={uploading} onChange={e => handle(e.target.files)} />
+              <input type="file" accept="image/*,application/pdf" className="hidden" disabled={uploading} onChange={e => handle(e.target)} />
             </label>
           )}
         </div>
       )}
     </div>
-  );
-}
-
-function MenuImageUpload({ onUploaded }) {
-  const [uploading, setUploading] = useState(false);
-  const handle = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    const url = await uploadFile(file);
-    onUploaded(url);
-    setUploading(false);
-  };
-  return (
-    <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-gray-200 rounded-lg px-4 py-2 hover:border-orange-300 transition text-sm text-gray-400 w-fit">
-      <Upload className="w-4 h-4" /> {uploading ? 'מעלה...' : 'העלה תמונה'}
-      <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handle} />
-    </label>
   );
 }
 
@@ -242,7 +194,11 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
     menu_items: application?.menu_items || [],
   });
 
-  const checklist = form.type === 'type1' ? CHECKLIST_TYPE1 : CHECKLIST_TYPE2;
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
+
+  const checklist = checklistFor(form.type);
+  const emailError = form.email && !isValidEmail(form.email) ? 'כתובת דוא"ל לא תקינה' : '';
+  const periodError = form.period_from && form.period_to && form.period_to < form.period_from ? 'תאריך הסיום מוקדם מתאריך ההתחלה' : '';
   const allChecked = checklist.every(item => form.checklist[item.id]);
   const allDeclared = form.type === 'type1'
     ? DECLARATIONS_TYPE1.every(d => form.declarations[d.id])
@@ -253,23 +209,45 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
   const toggleDecl = (id) => setForm(f => ({ ...f, declarations: { ...f.declarations, [id]: !f.declarations[id] } }));
   const toggleDoc = (id) => setForm(f => ({ ...f, docs_checklist: { ...f.docs_checklist, [id]: !f.docs_checklist[id] } }));
 
-  const handleSubmit = async () => {
+  // asDraft keeps the application with the business owner (status pending_owner) for later completion.
+  const save = async (asDraft) => {
     setSaving(true);
-    const payload = {
-      ...form,
-      area: Number(form.area),
-      status: 'pending_review',
-      submitted_at: new Date().toISOString(),
-      application_id: application?.application_id || `ASH-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
-    };
-    if (isEdit) {
-      await base44.entities.ClosureApplication.update(application.id, payload);
-    } else {
-      await base44.entities.ClosureApplication.create(payload);
+    try {
+      const now = new Date().toISOString();
+      const history = [...(application?.history || []), {
+        type: 'status_change',
+        status: asDraft ? 'pending_owner' : 'pending_review',
+        notes: asDraft ? 'נשמרה טיוטה' : (isEdit ? 'הוגשה מחדש' : 'הוגשה'),
+        date: now,
+      }];
+      const payload = {
+        ...form,
+        area: form.area === '' ? '' : Number(form.area),
+        email: form.email.trim(),
+        status: asDraft ? 'pending_owner' : 'pending_review',
+        history,
+        ...(asDraft ? {} : { submitted_at: now }),
+        application_id: application?.application_id || await nextApplicationId(),
+      };
+      if (isEdit) {
+        await base44.entities.ClosureApplication.update(application.id, payload);
+      } else {
+        await base44.entities.ClosureApplication.create(payload);
+      }
+      alert(asDraft
+        ? `הטיוטה נשמרה (${payload.application_id}). אפשר להמשיך למלא מאוחר יותר מ"הבקשות שלי".`
+        : `הבקשה ${payload.application_id} הוגשה בהצלחה!`);
+      onSaved();
+    } catch (err) {
+      const full = /quota/i.test(`${err?.name} ${err?.message}`);
+      alert(full
+        ? 'אין מספיק מקום באחסון הדפדפן. ייצאו גיבוי ומחקו בקשות ישנות, או העלו קבצים קטנים יותר.'
+        : 'שגיאה בשמירת הבקשה: ' + err.message);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    onSaved();
   };
+  const handleSubmit = () => save(false);
 
   const addMenuItem = () => setForm(f => ({ ...f, menu_items: [...(f.menu_items || []), { name: '', price: '', image: null }] }));
   const updateMenuItem = (i, field, val) => setForm(f => {
@@ -281,7 +259,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
 
   const canNext = () => {
     if (step === 0) return form.type && form.area;
-    if (step === 1) return form.business && form.owner && form.address && form.phone && form.email && allDeclared;
+    if (step === 1) return form.business && form.owner && form.address && form.phone && isValidEmail(form.email) && !periodError && allDeclared;
     if (step === 2) return allChecked;
     if (step === 3) return true;
     if (step === 4) return true;
@@ -296,12 +274,13 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
       </div>
 
       {/* Steps */}
-      <div className="flex gap-2 mb-8">
+      <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
         {STEPS.map((s, i) => (
           <button
             key={i}
-            onClick={() => i < step || canNext() ? setStep(i) : null}
-            className={`flex-1 text-center text-xs py-2 rounded-lg font-medium transition-all ${
+            type="button"
+            onClick={() => (i <= step || (i === step + 1 && canNext())) && setStep(i)}
+            className={`flex-1 min-w-[88px] text-center text-xs py-2 px-1 rounded-lg font-medium transition-all ${
               i === step ? 'bg-blue-700 text-white' : i < step ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}>{s}</button>
         ))}
@@ -312,13 +291,14 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
         {step === 0 && (
           <div className="space-y-6">
             <h3 className="font-bold text-gray-700 mb-4">סוג הסגירה</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { id: 'type1', title: 'סגירת חורף / פרגוד', desc: 'סגירה זמנית לתקופת החורף (15.10–15.4)' },
                 { id: 'type2', title: 'סגירה עונתית', desc: 'מבנה קבוע או חצי-קבוע' },
               ].map(t => (
                 <button
                   key={t.id}
+                  type="button"
                   onClick={() => update('type', t.id)}
                   className={`border-2 rounded-xl p-4 text-right transition-all ${form.type === t.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
                 >
@@ -328,9 +308,10 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
               ))}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">שטח הסגירה (מ״ר)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">שטח הסגירה (מ״ר)<span className="text-red-500 mr-0.5">*</span></label>
               <input
                 type="number"
+                min="1"
                 value={form.area}
                 onChange={e => update('area', e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -351,34 +332,34 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
             {/* פרטי העסק */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700">פרטי העסק</p>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="שם העסק" value={form.business} onChange={v => update('business', v)} />
-                <Field label="שם בעל העסק" value={form.owner} onChange={v => update('owner', v)} />
-                <Field label="כתובת" value={form.address} onChange={v => update('address', v)} />
-                <Field label="טלפון" type="tel" value={form.phone} onChange={v => update('phone', v)} />
-                <Field label="דוא״ל" type="email" value={form.email} onChange={v => update('email', v)} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="שם העסק" required value={form.business} onChange={v => update('business', v)} />
+                <Field label="שם בעל העסק" required value={form.owner} onChange={v => update('owner', v)} />
+                <Field label="כתובת" required value={form.address} onChange={v => update('address', v)} />
+                <Field label="טלפון" type="tel" required value={form.phone} onChange={v => update('phone', v)} />
+                <Field label="דוא״ל" type="email" required value={form.email} onChange={v => update('email', v)} error={emailError} />
               </div>
-              <MapPicker lat={form.lat} lng={form.lng} onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
+              <MapPicker lat={form.lat} lng={form.lng} address={form.address} onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
             </div>
 
             {/* פרטי הרישוי ותקופת הסגירה */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700">פרטי הרישוי</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="תיק רישוי" value={form.license_file} onChange={v => update('license_file', v)} />
                 <Field label="סוג העסק" value={form.business_type} onChange={v => update('business_type', v)} />
                 <Field label="מצב רישוי" value={form.license_status} onChange={v => update('license_status', v)} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="תקופה — מתאריך" type="date" value={form.period_from} onChange={v => update('period_from', v)} />
-                <Field label="תקופה — עד תאריך" type="date" value={form.period_to} onChange={v => update('period_to', v)} />
+                <Field label="תקופה — עד תאריך" type="date" value={form.period_to} onChange={v => update('period_to', v)} error={periodError} />
               </div>
             </div>
 
             {/* פרטי עורך הבקשה */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700">פרטי עורך הבקשה</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="שם" value={form.applicant_name} onChange={v => update('applicant_name', v)} />
                 <Field label="נייד" type="tel" value={form.applicant_phone} onChange={v => update('applicant_phone', v)} />
                 <Field label="מס׳ רישיון" value={form.applicant_license} onChange={v => update('applicant_license', v)} />
@@ -418,20 +399,20 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
             {/* פרטי העסק ומיקום */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700">פרטי העסק</p>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="שם העסק" value={form.business} onChange={v => update('business', v)} />
-                <Field label="שם בעל העסק" value={form.owner} onChange={v => update('owner', v)} />
-                <Field label="כתובת" value={form.address} onChange={v => update('address', v)} />
-                <Field label="טלפון" type="tel" value={form.phone} onChange={v => update('phone', v)} />
-                <Field label="דוא״ל" type="email" value={form.email} onChange={v => update('email', v)} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="שם העסק" required value={form.business} onChange={v => update('business', v)} />
+                <Field label="שם בעל העסק" required value={form.owner} onChange={v => update('owner', v)} />
+                <Field label="כתובת" required value={form.address} onChange={v => update('address', v)} />
+                <Field label="טלפון" type="tel" required value={form.phone} onChange={v => update('phone', v)} />
+                <Field label="דוא״ל" type="email" required value={form.email} onChange={v => update('email', v)} error={emailError} />
               </div>
-              <MapPicker lat={form.lat} lng={form.lng} onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
+              <MapPicker lat={form.lat} lng={form.lng} address={form.address} onSelect={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
             </div>
 
             {/* פרטי החברה */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700">פרטי החברה</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="שם החברה" value={form.company_name} onChange={v => update('company_name', v)} />
                 <Field label="ח.פ" value={form.company_id} onChange={v => update('company_id', v)} />
               </div>
@@ -451,7 +432,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
             {/* פרטי המקרקעין */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700">פרטי המקרקעין</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="גוש" value={form.block} onChange={v => update('block', v)} />
                 <Field label="חלקה" value={form.parcel} onChange={v => update('parcel', v)} />
                 <Field label="כתובת הנכס" value={form.property_address} onChange={v => update('property_address', v)} />
@@ -461,7 +442,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
             {/* תנאי השימוש */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700">תנאי השימוש</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="תקופת השימוש המבוקשת" value={form.usage_period} onChange={v => update('usage_period', v)} placeholder="לדוגמה: שנה אחת" />
                 <Field label="אופציה" value={form.usage_option} onChange={v => update('usage_option', v)} />
               </div>
@@ -497,7 +478,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
         {step === 2 && (
           <div>
             <h3 className="font-bold text-gray-700 mb-2">
-              רשימת תנאים — {form.type === 'type1' ? 'סגירה עונתית' : 'מבנה קבוע'}
+              רשימת תנאים — {typeLabel(form.type)}
             </h3>
             <p className="text-sm text-gray-500 mb-4">יש לאשר את עמידת העסק בכל התנאים הבאים:</p>
             <div className="space-y-3">
@@ -546,14 +527,14 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
                   {/* תמונה */}
                   {item.image ? (
                     <div className="relative flex-shrink-0">
-                      <img src={item.image} className="w-14 h-14 object-cover rounded-lg border" />
-                      <button onClick={() => updateMenuItem(i, 'image', null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"><X className="w-2.5 h-2.5" /></button>
+                      <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-lg border" />
+                      <button type="button" onClick={() => updateMenuItem(i, 'image', null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"><X className="w-2.5 h-2.5" /></button>
                     </div>
                   ) : (
                     <label className="flex-shrink-0 w-14 h-14 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-400 transition text-gray-400 text-xs">
                       <Upload className="w-4 h-4 mb-0.5" />
                       תמונה
-                      <input type="file" accept="image/*" className="hidden" onChange={async e => { const f = e.target.files[0]; if (!f) return; const url = await uploadFile(f); updateMenuItem(i, 'image', url); }} />
+                      <input type="file" accept="image/*" className="hidden" onChange={async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; const url = await uploadFile(f); if (url) updateMenuItem(i, 'image', url); }} />
                     </label>
                   )}
                   {/* שם */}
@@ -570,15 +551,15 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
                     value={item.price}
                     onChange={e => updateMenuItem(i, 'price', e.target.value)}
                     placeholder="₪מחיר"
-                    className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    className="w-20 sm:w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
                   />
-                  <button onClick={() => removeMenuItem(i)} className="text-red-400 hover:text-red-600 transition flex-shrink-0">
+                  <button type="button" onClick={() => removeMenuItem(i)} className="text-red-400 hover:text-red-600 transition flex-shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               ))}
             </div>
-            <button onClick={addMenuItem} className="flex items-center gap-2 w-full border-2 border-dashed border-orange-200 rounded-xl px-4 py-3 text-orange-600 hover:border-orange-400 hover:bg-orange-50 transition text-sm font-medium justify-center">
+            <button type="button" onClick={addMenuItem} className="flex items-center gap-2 w-full border-2 border-dashed border-orange-200 rounded-xl px-4 py-3 text-orange-600 hover:border-orange-400 hover:bg-orange-50 transition text-sm font-medium justify-center">
               <Plus className="w-4 h-4" /> הוסף פריט לתפריט
             </button>
           </div>
@@ -593,28 +574,39 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
             <div className="bg-gray-50 rounded-xl p-4 text-right mb-6 space-y-2 text-sm text-gray-600">
               <p><strong>עסק:</strong> {form.business}</p>
               <p><strong>כתובת:</strong> {form.address}</p>
-              <p><strong>סוג:</strong> {form.type === 'type1' ? 'סגירת חורף / פרגוד' : 'סגירה עונתית'}</p>
+              <p><strong>סוג:</strong> {typeLabel(form.type)}</p>
               <p><strong>שטח:</strong> {form.area} מ״ר</p>
               <p><strong>מיקום:</strong> {form.lat ? `${Number(form.lat).toFixed(5)}, ${Number(form.lng).toFixed(5)}` : 'לא סומן'}</p>
               <p><strong>תנאים מאושרים:</strong> {checklist.filter(c => form.checklist[c.id]).length}/{checklist.length}</p>
               {form.description && <p><strong>תיאור:</strong> {form.description}</p>}
-              <p><strong>מסמכים שהועלו:</strong> {[form.business_photo, form.closure_simulation, form.site_plan, form.facade_plan, form.section_plan].filter(Boolean).length + (form.additional_photos?.length || 0)} קבצים</p>
-              <p><strong>פריטי תפריט:</strong> {(form.menu_items || []).length} פריטים</p>
+              <p><strong>מסמכים שהועלו:</strong> {[form.business_photo, form.closure_simulation, form.site_plan, form.facade_plan, form.section_plan].filter(Boolean).length + (form.additional_photos?.length || 0) + Object.values(form.docs_files || {}).filter(Boolean).length} קבצים</p>
+              <p><strong>פריטי תפריט:</strong> {(form.menu_items || []).filter(m => m.name).length} פריטים</p>
             </div>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between mt-6">
+      <div className="flex justify-between items-center gap-2 mt-6 flex-wrap">
         <button
+          type="button"
           onClick={() => step > 0 ? setStep(s => s - 1) : onCancel()}
           className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
         >
           <ChevronRight className="w-4 h-4" /> הקודם
         </button>
+        <button
+          type="button"
+          onClick={() => save(true)}
+          disabled={saving || !form.business}
+          title={!form.business ? 'יש למלא לפחות את שם העסק' : ''}
+          className="flex items-center gap-2 px-4 py-2 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+        >
+          <Save className="w-4 h-4" /> שמור טיוטה
+        </button>
         {step < STEPS.length - 1 ? (
           <button
+            type="button"
             onClick={() => setStep(s => s + 1)}
             disabled={!canNext()}
             className="flex items-center gap-2 px-6 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -623,6 +615,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
           </button>
         ) : (
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={saving}
             className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40"
