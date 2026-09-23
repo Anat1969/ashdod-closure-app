@@ -1,7 +1,8 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { LayoutDashboard, Building2, HardHat, Map, Users, LogOut, Menu, X, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Building2, HardHat, Map, Users, Menu, X, BookOpen } from 'lucide-react';
 import { useState } from 'react';
+import BackupMenu from './BackupMenu';
 
 const NAV_ITEMS = [
   { path: '/', label: 'דשבורד', icon: LayoutDashboard, adminOnly: false },
@@ -13,7 +14,7 @@ const NAV_ITEMS = [
 ];
 
 export default function Layout() {
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
   const location = useLocation();
   const isAdmin = currentUser?.role === 'admin';
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -64,17 +65,7 @@ export default function Layout() {
             <h1 className="text-base font-bold leading-tight">מנהל סגירות — עיריית אשדוד</h1>
             <p className="text-blue-300 text-xs hidden sm:block">היתרי סגירה עונתיים וחורף</p>
           </div>
-          <div className="hidden sm:flex items-center gap-1 text-blue-200 text-sm">
-            <span className="truncate max-w-[140px]">{currentUser?.full_name || currentUser?.email}</span>
-            {isAdmin && <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full mr-1">מנהל</span>}
-          </div>
-          <button
-            onClick={logout}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-800 hover:bg-blue-700 text-sm text-blue-200 hover:text-white transition-all flex-shrink-0"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">יציאה</span>
-          </button>
+          <BackupMenu />
         </div>
 
         {/* Desktop nav */}

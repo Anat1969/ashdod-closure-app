@@ -1,39 +1,26 @@
-**Welcome to your Base44 project** 
+# מנהל סגירות — עיריית אשדוד (גרסה עצמאית)
 
-**About**
+גרסה עצמאית של האפליקציה, ללא תלות ב-Base44.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+**כתובת האפליקציה:** https://anat1969.github.io/ashdod-closure-app/
 
-This project contains everything you need to run your app locally.
+## איך זה עובד
+- האתר מתארח בחינם ב-GitHub Pages ומתעדכן אוטומטית בכל שינוי בענף `main`.
+- **הנתונים (בקשות, קבצים ותמונות) נשמרים בדפדפן של כל משתמש** (IndexedDB), ואין שרת.
+  - בקשה שנשמרת במחשב אחד לא מופיעה במחשב אחר.
+  - כדי להעביר נתונים או לגבות אותם, משתמשים בכפתור **"גיבוי נתונים"** בראש המסך (ייצוא / ייבוא של קובץ JSON).
+  - ניקוי נתוני האתר בדפדפן מוחק את הנתונים, לכן כדאי לייצא גיבוי באופן קבוע.
 
-**Edit the code in your local development environment**
+## הבדלים מגרסת Base44
+| יכולת | Base44 | גרסה עצמאית |
+|---|---|---|
+| התחברות משתמשים | חשבון Base44 | אין צורך בהתחברות |
+| שמירת נתונים | שרת משותף | דפדפן מקומי + גיבוי לקובץ |
+| ייבוא בקשות ממסמך | AI (PDF/Word/תמונה) | Excel / CSV עם העמודות: שם העסק, כתובת, סוג העסק, סוג הסגירה |
+| שליחת מייל | נשלח מהשרת | פותח את תוכנת הדואר שלך עם ההודעה מוכנה |
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
-
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
-
+## הרצה מקומית
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+npm install
+npm run dev
 ```
-
-Run the app: `npm run dev`
-
-**Publish your changes**
-
-Open [Base44.com](http://Base44.com) and click on Publish.
-
-**Docs & Support**
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
