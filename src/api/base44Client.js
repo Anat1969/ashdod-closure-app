@@ -155,7 +155,13 @@ async function extractDataFromUploadedFile({ file_url }) {
   }
   const XLSX = await import('xlsx');
   const buffer = await (await fetch(file_url)).arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', codepage: 65001 });
+  // CSV/text is decoded here as UTF-8 so Hebrew headers survive; Excel files are parsed as binary.
+  // (Windows often labels CSV as "ms-excel", so detect by file signature: xlsx = ZIP "PK", xls = D0 CF.)
+  const head = new Uint8Array(buffer.slice(0, 2));
+  const isText = !(head[0] === 0x50 && head[1] === 0x4b) && !(head[0] === 0xd0 && head[1] === 0xcf);
+  const workbook = isText
+    ? XLSX.read(new TextDecoder('utf-8').decode(buffer).replace(/^﻿/, ''), { type: 'string' })
+    : XLSX.read(buffer, { type: 'array' });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
   const businesses = rows
