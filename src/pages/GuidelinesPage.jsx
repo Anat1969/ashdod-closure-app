@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GUIDELINES, paramsFor } from '@/lib/guidelines';
 import Quiz from '@/components/Quiz';
+import VerdictMark from '@/components/VerdictMark';
 
 const ClosureScene3D = lazy(() => import('@/components/ClosureScene3D'));
 
@@ -48,6 +49,7 @@ export default function GuidelinesPage() {
 
   const sceneParams = useMemo(() => paramsFor(g, variant), [g, variant]);
   const labels = LABELS[g.id]?.(variant === 'bad') || [];
+  const isWrong = variant === 'bad' && !g.badIsSeason;
   const goodLabel = g.badIsSeason ? 'חורף' : 'כך נכון';
   const badLabel = g.badIsSeason ? 'קיץ' : 'כך לא';
 
@@ -80,16 +82,23 @@ export default function GuidelinesPage() {
         </ol>
 
         <div className="order-1 lg:order-2 lg:sticky lg:top-[120px] space-y-3 min-w-0">
-          <Suspense fallback={<div className="h-[340px] sm:h-[460px] rounded-2xl bg-blue-100 animate-pulse" />}>
-            <ClosureScene3D params={sceneParams} camera={g.camera} labels={labels} className="shadow-xl h-[340px] sm:h-[460px]" />
-          </Suspense>
+          <div className="relative">
+            <Suspense fallback={<div className="h-[340px] sm:h-[460px] rounded-2xl bg-blue-100 animate-pulse" />}>
+              <ClosureScene3D params={sceneParams} camera={g.camera} labels={labels} className={`shadow-xl h-[340px] sm:h-[460px] ring-4 transition ${isWrong ? 'ring-red-500/70' : 'ring-green-500/60'}`} />
+            </Suspense>
+            <div className="pointer-events-none absolute top-3 left-3 flex items-center gap-2 rounded-2xl bg-white/90 backdrop-blur pl-4 pr-1.5 py-1.5 shadow-xl" data-testid="verdict">
+              <VerdictMark key={g.id + variant} ok={!isWrong} size={72} />
+              <span className={`text-2xl font-semibold ${isWrong ? 'text-red-700' : 'text-green-800'}`}>{isWrong ? 'כך לא' : 'כך נכון'}</span>
+            </div>
+          </div>
           <div className="paper rounded-2xl p-4">
             <div className="flex flex-wrap items-center gap-2 justify-between">
               <div className="flex gap-1 bg-blue-100/70 rounded-lg p-1" role="group" aria-label="השוואה">
                 {[['good', goodLabel], ['bad', badLabel]].map(([v, l]) => (
                   <button key={v} type="button" onClick={() => { setTour(false); select(g.id, v); }}
-                    className={`relative px-4 py-1.5 rounded-md text-sm ${variant === v ? (v === 'bad' && !g.badIsSeason ? 'text-red-800' : 'text-green-900') : 'text-blue-600'}`}>
+                    className={`relative flex items-center gap-2 px-3 py-1.5 rounded-md text-sm ${variant === v ? (v === 'bad' && !g.badIsSeason ? 'text-red-800' : 'text-green-900') : 'text-blue-600'}`}>
                     {variant === v && <motion.span layoutId="variant-pill" className="absolute inset-0 rounded-md bg-white shadow" />}
+                    <span className="relative"><VerdictMark ok={v === 'good' || g.badIsSeason} size={26} animate={false} /></span>
                     <span className="relative font-medium">{l}</span>
                   </button>
                 ))}
@@ -102,9 +111,12 @@ export default function GuidelinesPage() {
             </div>
             <AnimatePresence mode="wait">
               <motion.div key={g.id + variant} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-3" data-testid="guideline-caption">
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium text-white ${variant === 'bad' && !g.badIsSeason ? 'bg-red-700' : 'bg-green-700'}`}>{variant === 'bad' && !g.badIsSeason ? 'לא תקין' : 'תקין'}</span>
-                  <span className="text-blue-950 font-medium">{variant === 'bad' ? g.bad : g.good}</span>
+                <div className="flex items-center gap-3">
+                  <VerdictMark ok={!isWrong} size={40} />
+                  <span>
+                    <span className={`block text-sm font-semibold ${isWrong ? 'text-red-700' : 'text-green-800'}`}>{isWrong ? 'לא תקין' : 'תקין'}</span>
+                    <span className="text-blue-950 font-medium">{variant === 'bad' ? g.bad : g.good}</span>
+                  </span>
                 </div>
                 <p className="text-xs text-blue-500 mt-2">
                   {g.title} · <Link to={`/policy?c=${encodeURIComponent(g.clause)}`} className="underline font-mono">סעיף {g.clause} במסמך המדיניות</Link>

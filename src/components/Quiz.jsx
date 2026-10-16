@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { QUIZ, levelOf } from '@/lib/quiz';
 import { clauseById } from '@/lib/policy';
+import VerdictMark from './VerdictMark';
 
 const BEST_KEY = 'ashdod-closure:quiz-best';
 
@@ -66,10 +67,13 @@ export default function Quiz({ clauseFilter }) {
             <AnimatePresence>
               {answer !== null && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="overflow-hidden">
-                  <div className={`mt-5 rounded-xl p-4 ${answer ? 'bg-green-50 text-green-900' : 'bg-red-50 text-red-900'}`} data-testid="quiz-feedback">
+                  <div className={`mt-5 rounded-xl p-4 flex gap-3 items-start ${answer ? 'bg-green-50 text-green-900' : 'bg-red-50 text-red-900'}`} data-testid="quiz-feedback">
+                    <VerdictMark ok={answer} size={48} />
+                    <div>
                     <strong>{answer ? 'צדקתם.' : 'לא בדיוק.'}</strong> {card.why}
                     <div className="mt-2 text-sm">
                       <Link to={`/policy?c=${encodeURIComponent(card.clause)}`} className="underline font-mono">סעיף {card.clause}: {clauseById(card.clause)?.label}</Link>
+                    </div>
                     </div>
                   </div>
                   <button type="button" onClick={next} className="mt-4 w-full py-2.5 rounded-xl bg-blue-900 text-white">{i + 1 < deck.length ? 'לשאלה הבאה' : 'לסיכום'}</button>

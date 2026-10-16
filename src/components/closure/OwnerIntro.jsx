@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DOCS_LABELS, DOCUMENTS_TYPE2 } from './constants';
+import VerdictMark from '../VerdictMark';
 
 const BIZ = [['food', 'בית אוכל'], ['cafe', 'בית קפה'], ['snack', 'מזנון'], ['other', 'עסק אחר']];
 const STEPS = ['בודקים התאמה', 'מכינים מסמכים', 'ממלאים בקשה בשלבים', 'העירייה בודקת', 'תיקונים אם צריך', 'היתר ומפה'];
@@ -62,7 +63,9 @@ export default function OwnerIntro() {
           </label>
           <AnimatePresence mode="wait">
             <motion.div key={issues.length ? 'no' : 'yes'} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className={`rounded-xl p-4 ${issues.length ? 'bg-red-50 text-red-900' : 'bg-green-50 text-green-900'}`} data-testid="eligibility-result">
+              className={`rounded-xl p-4 flex gap-3 items-start ${issues.length ? 'bg-red-50 text-red-900' : 'bg-green-50 text-green-900'}`} data-testid="eligibility-result">
+              <VerdictMark ok={!issues.length} size={48} />
+              <div>
               {issues.length ? (
                 <>
                   <strong>עדיין לא.</strong>
@@ -74,6 +77,7 @@ export default function OwnerIntro() {
                   <div className="text-sm mt-1"><Link to="/guidelines" className="underline">איך הסגירה צריכה להיראות</Link></div>
                 </>
               )}
+              </div>
             </motion.div>
           </AnimatePresence>
         </section>

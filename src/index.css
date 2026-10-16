@@ -120,3 +120,5 @@ mark.hit { background: #fde68a; color: #181c22; border-radius: 3px; padding: 0 2
 .map-ltr .leaflet-popup-content { direction: rtl; }
 .osm-dot { width: 12px; height: 12px; transform: rotate(45deg); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.45); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+.leaflet-tooltip.street-label { background: #f59e0b; color: #181c22; border: 0; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.leaflet-tooltip.street-label::before { border-top-color: #f59e0b; }
