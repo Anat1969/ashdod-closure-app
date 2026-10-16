@@ -36,6 +36,7 @@ Closure permits (winter screen type 1, seasonal closure type 2) for Ashdod food 
 
 ## Delivery
 Final URL + one line. Update this file.
+- Production: https://ashdod-closure-app.vercel.app (Vercel project `ashdod-closure-app`, alias also ashdod-closures.vercel.app). The old GitHub Pages workflow still runs on main.
 
 ## Corrections log
 (empty)
