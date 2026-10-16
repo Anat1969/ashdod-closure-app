@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { Search, Loader2 } from '@/lib/noIcons';
-import { ASHDOD_CENTER,  geocodeAddress } from '@/lib/map';
+import { ASHDOD_CENTER, locateAddress } from '@/lib/map';
 import { baseMapOf } from '@/lib/map';
 import { useSettings } from '@/lib/settings';
 
@@ -32,9 +32,11 @@ export default function MapPicker({ lat, lng, onSelect, address = '' }) {
     setSearching(true);
     setError('');
     try {
-      const found = await geocodeAddress(address);
-      if (found) onSelect(found[0], found[1]);
-      else setError('הכתובת לא נמצאה — סמנו את המיקום ידנית על המפה');
+      const loc = await locateAddress(address);
+      if (loc.coords) {
+        onSelect(loc.coords[0], loc.coords[1]);
+        if (loc.precision === 'street') setError(`מספר הבית לא אותר. הסמן הוצב על רחוב ${loc.street.name}, לחצו על המפה כדי לדייק.`);
+      } else setError('הכתובת לא נמצאה, סמנו את המיקום ידנית על המפה');
     } catch (err) {
       setError(err.message);
     } finally {

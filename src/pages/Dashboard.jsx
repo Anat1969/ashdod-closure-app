@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { STATUS_LABELS, STATUS_STYLES } from '@/components/closure/constants';
 import { GUIDELINES, paramsFor } from '@/lib/guidelines';
+import VerdictMark from '@/components/VerdictMark';
 
 const ClosureScene3D = lazy(() => import('@/components/ClosureScene3D'));
 
@@ -46,8 +47,8 @@ function Hero3D() {
       <AnimatePresence mode="wait">
         <motion.div key={g.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
           className="absolute bottom-3 inset-x-3 rounded-xl bg-white/95 backdrop-blur px-4 py-3 text-blue-950 shadow-lg">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-semibold">{g.title}</span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2 font-semibold"><VerdictMark key={g.id} ok size={30} />{g.title}</span>
             <span className="font-mono text-[11px] text-blue-500">סעיף {g.clause}</span>
           </div>
           <div className="mt-2 flex gap-1">

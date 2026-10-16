@@ -2,12 +2,13 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import StatusBadge from '../components/closure/StatusBadge';
 import { STATUS_LABELS, typeLabel } from '../components/closure/constants';
 import {
-  ASHDOD_CENTER, coordsOf, hasCoords, statusIcon, geocodeAddress, reverseGeocode, baseMapOf, loadOsmVenues, osmIcon, AMENITY_LABELS,
+  ASHDOD_CENTER, ASHDOD_BOUNDS, ASHDOD_GIS_URL, coordsOf, hasCoords, statusIcon, locateAddress, reverseGeocode, baseMapOf, loadOsmVenues, osmIcon, AMENITY_LABELS,
 } from '@/lib/map';
+import { loadStreets, matchStreet, parseAddress, streetBounds } from '@/lib/streets';
 import { useSettings, setSettings } from '@/lib/settings';
 import { nextApplicationId } from '@/lib/applicationId';
 
@@ -29,6 +30,15 @@ function KeepSized() {
   return null;
 }
 
+function FitStreet({ street }) {
+  const map = useMap();
+  useEffect(() => {
+    const b = streetBounds(street);
+    if (b) map.flyToBounds(b, { padding: [60, 60], maxZoom: 17, duration: 0.9 });
+  }, [street, map]);
+  return null;
+}
+
 function ClickToPick({ active, onPick }) {
   useMapEvents({ click: (e) => { if (active) onPick([e.latlng.lat, e.latlng.lng]); } });
   return null;
@@ -39,7 +49,7 @@ const FILTERS = [{ val: 'all', label: 'הכל' }, ...Object.entries(STATUS_LABEL
 const TYPE_FILTERS = [{ val: 'all', label: 'כל הסוגים' }, { val: 'type1', label: 'פרגוד חורף' }, { val: 'type2', label: 'עונתית' }];
 const NEW_STATUSES = [['mapped', 'סגירה קיימת'], ['approved', 'מאושר'], ['pending_review', 'ממתין לבדיקה']];
 
-const streetOf = (address) => String(address || '').replace(/,.*$/, '').replace(/\d+.*$/, '').trim();
+const streetOf = (a) => a.street_name || parseAddress(a.address).street;
 const distM = ([a, b], [c, d]) => Math.hypot((a - c) * 111000, (b - d) * 94000);
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const chip = (active) => `px-3 py-1 rounded-md text-xs font-medium transition ${active ? 'bg-white shadow text-blue-950' : 'text-blue-600 hover:text-blue-950'}`;
@@ -64,6 +74,9 @@ export default function MapView() {
   const [tab, setTab] = useState(params.get('tab') === 'add' ? 'add' : 'list');
   const [search, setSearch] = useState('');
   const markerRefs = useRef({});
+  const [streets, setStreets] = useState([]);
+  const [streetQuery, setStreetQuery] = useState('');
+  const [focusStreet, setFocusStreet] = useState(null);
 
   // add-closure state
   const [form, setForm] = useState({ address: '', business: '', type: 'type1', status: 'mapped', area: '' });
@@ -88,10 +101,19 @@ export default function MapView() {
   useEffect(() => {
     load().finally(() => setLoading(false));
     loadOsmVenues().then(setOsm).catch(() => setOsm({ venues: [] }));
+    loadStreets().then(setStreets).catch(() => setStreets([]));
   }, []);
+
+  const typedStreet = useMemo(() => matchStreet(streets, parseAddress(form.address).street), [streets, form.address]);
+  const chooseStreet = (text) => {
+    setStreetQuery(text);
+    const m = streets.find(s => s.name === text) || (text.trim().length > 1 ? matchStreet(streets, text) : null);
+    setFocusStreet(m && m.lines ? m : null);
+  };
 
   const q = search.trim().toLowerCase();
   const filtered = apps.filter(a =>
+    (!focusStreet || a.street_code === focusStreet.code || matchStreet(streets, streetOf(a))?.code === focusStreet.code) &&
     (statusFilter === 'all' || a.status === statusFilter) &&
     (typeFilter === 'all' || (a.type || 'type1') === typeFilter) &&
     (!q || a.business?.toLowerCase().includes(q) || a.address?.toLowerCase().includes(q))
@@ -110,11 +132,17 @@ export default function MapView() {
     setTimeout(() => markerRefs.current[app.id]?.openPopup(), 1100);
   };
 
-  const createClosure = async ({ address, business, lat, lng }) => {
-    const full = address && !/אשדוד/.test(address) ? `${address}, אשדוד` : address;
+  const createClosure = async ({ address, business, lat, lng, street, precision }) => {
+    const { number } = parseAddress(address);
+    const official = street || matchStreet(streets, parseAddress(address).street);
+    const shown = official ? `${official.name}${number ? ` ${number}` : ''}` : address;
+    const full = shown && !/אשדוד/.test(shown) ? `${shown}, אשדוד` : shown;
     return base44.entities.ClosureApplication.create({
-      business: business || form.business || `סגירה ב${address || 'מיקום שסומן'}`,
+      business: business || form.business || `סגירה ב${shown || 'מיקום שסומן'}`,
       address: full || '',
+      street_code: official?.code ?? null,
+      street_name: official?.name ?? '',
+      location_precision: precision || (lat != null ? 'manual' : 'none'),
       type: form.type,
       status: form.status,
       area: form.area ? Number(form.area) : '',
@@ -146,14 +174,16 @@ export default function MapView() {
     if (!form.address.trim()) { setMsg('הקלידו כתובת או סמנו מיקום על המפה'); return undefined; }
     setBusy(true);
     try {
-      const found = await geocodeAddress(form.address);
-      if (!found) {
+      const loc = await locateAddress(form.address);
+      if (!loc.coords) {
         setPickMode(true);
         setMsg('הכתובת לא אותרה. לחצו על המפה במקום הנכון, ואז "הוספה למפה".');
         return undefined;
       }
-      const created = await createClosure({ address: form.address, business: form.business, lat: found[0], lng: found[1] });
-      return afterAdd(created, `נוספה סגירה ב${form.address}`);
+      const created = await createClosure({ address: form.address, business: form.business, lat: loc.coords[0], lng: loc.coords[1], street: loc.street, precision: loc.precision });
+      return afterAdd(created, loc.precision === 'street'
+        ? `נוספה סגירה ברחוב ${loc.street.name}. מספר הבית לא אותר, הסגירה מוקמה על הרחוב. אפשר לדייק בסימון במפה.`
+        : `נוספה סגירה ב${created.address}`);
     } catch (err) {
       setPickMode(true);
       setMsg(`${err.message}. אפשר לסמן את המיקום בלחיצה על המפה.`);
@@ -176,7 +206,11 @@ export default function MapView() {
     setPicked(coords);
     if (!form.address.trim()) {
       const addr = await reverseGeocode(coords).catch(() => '');
-      if (addr) setForm(f => ({ ...f, address: addr }));
+      if (addr) {
+        const { street, number } = parseAddress(addr);
+        const official = matchStreet(streets, street);
+        setForm(f => ({ ...f, address: official ? `${official.name}${number ? ` ${number}` : ''}` : addr }));
+      }
     }
   };
 
@@ -190,11 +224,11 @@ export default function MapView() {
     for (let i = 0; i < lines.length; i++) {
       setProgress({ done: i, total: lines.length, current: lines[i] });
       const { business, address } = parseLine(lines[i]);
-      let found = null;
-      try { found = await geocodeAddress(address); } catch { found = null; }
-      const created = await createClosure({ address, business, lat: found?.[0], lng: found?.[1] });
+      let loc = { coords: null };
+      try { loc = await locateAddress(address); } catch { /* keep unlocated */ }
+      const created = await createClosure({ address, business, lat: loc.coords?.[0], lng: loc.coords?.[1], street: loc.street, precision: loc.precision });
       added++;
-      if (!found) missing.push(created);
+      if (!loc.coords) missing.push(created);
       if (i < lines.length - 1) await sleep(1100); // Nominatim allows one request per second
     }
     setProgress(null);
@@ -236,16 +270,32 @@ export default function MapView() {
             {TYPE_FILTERS.map(f => <button key={f.val} type="button" onClick={() => setParam('type', f.val)} className={chip(typeFilter === f.val)}>{f.label}</button>)}
           </div>
           <div className="flex gap-1 bg-blue-100/70 rounded-lg p-1" role="group" aria-label="שכבות">
+            <button type="button" onClick={() => setSettings({ showStreets: !settings.showStreets })} className={chip(settings.showStreets)} aria-pressed={settings.showStreets}>רחובות רשמיים</button>
             <button type="button" onClick={() => setSettings({ showOsm: !settings.showOsm })} className={chip(settings.showOsm)} aria-pressed={settings.showOsm}>עסקי מזון מ-OSM</button>
           </div>
+          <a href={ASHDOD_GIS_URL} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg text-xs font-medium border border-blue-300 text-blue-800 hover:bg-white">המפה העירונית הרשמית</a>
         </div>
       </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className={`relative z-0 rounded-2xl overflow-hidden border border-blue-200 shadow-xl h-[62vh] lg:h-[calc(100vh-240px)] min-h-[420px] map-ltr ${picking ? 'cursor-crosshair ring-4 ring-amber-300' : ''}`} data-testid="closure-map">
-          <MapContainer center={ASHDOD_CENTER} zoom={14} className="w-full h-full">
+          <MapContainer center={ASHDOD_CENTER} zoom={14} minZoom={12} maxBounds={ASHDOD_BOUNDS} maxBoundsViscosity={0.8} className="w-full h-full">
             <KeepSized />
-            <TileLayer key={settings.baseMap} attribution={base.attribution} url={base.url} />
+            <TileLayer key={settings.baseMap} attribution={base.attribution} url={base.url} maxZoom={base.maxZoom} maxNativeZoom={base.maxZoom} />
+            {settings.showStreets && streets.filter(s => s.lines && s.code !== focusStreet?.code).map(s => (
+              <Polyline key={s.code} positions={s.lines} pathOptions={{ color: '#6d28d9', weight: 4, opacity: 0.18 }}
+                eventHandlers={{ click: () => { setStreetQuery(s.name); setFocusStreet(s); } }}>
+                <Tooltip sticky direction="top">{s.name}</Tooltip>
+              </Polyline>
+            ))}
+            {focusStreet && (
+              <>
+                <Polyline positions={focusStreet.lines} pathOptions={{ color: '#f59e0b', weight: 9, opacity: 0.9 }}>
+                  <Tooltip permanent direction="top" className="street-label">{focusStreet.name}</Tooltip>
+                </Polyline>
+                <FitStreet street={focusStreet} />
+              </>
+            )}
             <ClickToPick active={picking} onPick={handlePick} />
             {flyTo && <FlyTo coords={flyTo} key={flyTo.join(',')} />}
             {picked && <Marker position={picked} icon={statusIcon(form.status, false, form.type)} />}
@@ -319,7 +369,12 @@ export default function MapView() {
             <div className="overflow-y-auto flex-1 p-3 space-y-5">
               <section className="space-y-2">
                 <div className="label">סגירה אחת</div>
-                <input className={input} placeholder="כתובת, למשל: הציונות 20" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} onKeyDown={e => e.key === 'Enter' && handleAdd()} aria-label="כתובת" />
+                <input className={input} list="ashdod-streets" placeholder="כתובת, למשל: הציונות 20" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} onKeyDown={e => e.key === 'Enter' && handleAdd()} aria-label="כתובת" />
+                {form.address.trim().length > 1 && streets.length > 0 && (
+                  <p className={`text-xs ${typedStreet ? 'text-green-800' : 'text-amber-800'}`} data-testid="street-match">
+                    {typedStreet ? `רחוב רשמי: ${typedStreet.name} (סמל ${typedStreet.code})` : 'הרחוב לא נמצא ברשימת הרחובות של אשדוד'}
+                  </p>
+                )}
                 <input className={input} placeholder="שם העסק (לא חובה)" value={form.business} onChange={e => setForm({ ...form, business: e.target.value })} aria-label="שם העסק" />
                 <div className="grid grid-cols-2 gap-2">
                   <select className={input} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} aria-label="סוג">
@@ -363,6 +418,10 @@ export default function MapView() {
           ) : (
             <>
               <div className="p-3 border-b border-blue-100 space-y-2">
+                <div className="flex gap-2">
+                  <input value={streetQuery} onChange={e => chooseStreet(e.target.value)} list="ashdod-streets" placeholder={`רחוב באשדוד (${streets.length || '...'} רחובות רשמיים)`} type="search" className={input} aria-label="רחוב" />
+                  {focusStreet && <button type="button" onClick={() => chooseStreet('')} className="px-2 text-xs underline text-blue-700 flex-none">כל העיר</button>}
+                </div>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש עסק או כתובת" type="search" className={input} />
                 <div className="grid grid-cols-2 gap-2 text-center">
                   <div><div className="font-mono text-lg">{filtered.length}</div><div className="text-[11px] text-blue-600">סגירות ובקשות</div></div>
@@ -407,6 +466,7 @@ export default function MapView() {
           )}
         </aside>
       </div>
+      <datalist id="ashdod-streets">{streets.map(s => <option key={s.code} value={s.name} />)}</datalist>
     </div>
   );
 }

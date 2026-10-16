@@ -1,5 +1,6 @@
 // Shared Leaflet setup and location helpers.
 import L from 'leaflet';
+import { loadStreets, parseAddress, matchStreet, distanceToStreet } from './streets';
 import 'leaflet/dist/leaflet.css';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -13,21 +14,26 @@ export const ASHDOD_CENTER = [31.8014, 34.6436];
 export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-// Free base maps that need no API key.
+// Free base maps that need no API key. Default: the Ashdod street map with Hebrew street names.
 export const BASE_MAPS = {
-  grey: {
-    label: 'מפה אפורה',
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  streets: { label: 'מפת רחובות אשדוד', url: TILE_URL, attribution: TILE_ATTRIBUTION, maxZoom: 19 },
+  voyager: {
+    label: 'מפה בהירה',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
     attribution: `${TILE_ATTRIBUTION} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
+    maxZoom: 20,
   },
-  streets: { label: 'מפת רחובות', url: TILE_URL, attribution: TILE_ATTRIBUTION },
   aerial: {
     label: 'תצלום אוויר',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri, Maxar, Earthstar Geographics',
+    maxZoom: 19,
   },
 };
-export const baseMapOf = (key) => BASE_MAPS[key] || BASE_MAPS.grey;
+// Ashdod municipal boundary box (with a margin) and the official municipal GIS viewer.
+export const ASHDOD_BOUNDS = [[31.72, 34.58], [31.88, 34.73]];
+export const ASHDOD_GIS_URL = 'https://digital.ashdod.muni.il/page/gistest1';
+export const baseMapOf = (key) => BASE_MAPS[key] || BASE_MAPS.streets;
 
 export const AMENITY_LABELS = {
   restaurant: 'מסעדה', cafe: 'בית קפה', fast_food: 'מזנון', bar: 'בר', pub: 'פאב', ice_cream: 'גלידריה',
@@ -107,6 +113,23 @@ export async function reverseGeocode([lat, lng]) {
   const j = await res.json();
   const a = j.address || {};
   return [a.road, a.house_number].filter(Boolean).join(' ') || '';
+}
+
+// Address -> point, correlated with the official Ashdod street:
+// the house is searched on the official street name and must fall on that street;
+// otherwise the closure is placed on the street itself.
+export async function locateAddress(address) {
+  const streets = await loadStreets().catch(() => []);
+  const { street, number } = parseAddress(address);
+  const official = matchStreet(streets, street);
+  const query = official ? `${official.osm_name || official.name}${number ? ` ${number}` : ''}` : address;
+  let hit = null;
+  try { hit = await geocodeAddress(query); } catch { hit = null; }
+  if (hit && (!official?.lines || distanceToStreet(official, hit) < 250)) {
+    return { coords: hit, street: official, precision: 'address' };
+  }
+  if (official?.center) return { coords: official.center, street: official, precision: 'street' };
+  return hit ? { coords: hit, street: null, precision: 'address' } : { coords: null, street: official, precision: 'none' };
 }
 
 const STATUS_PIN_COLORS = {

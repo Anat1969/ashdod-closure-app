@@ -3,6 +3,11 @@ import fs from 'node:fs';
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 const SHOTS = 'e2e/screenshots';
+const STREETS = [
+  { code: 856, name: 'הציונות', kind: 'street', osm_name: 'הציונות', center: [31.787, 34.6448], lines: [[[31.7855, 34.6430], [31.787, 34.6448], [31.7885, 34.6466]]] },
+  { code: 128, name: 'רוגוזין', kind: 'street', osm_name: 'רוגוזין', center: [31.7912, 34.6365], lines: [[[31.7900, 34.6350], [31.7912, 34.6365], [31.7925, 34.6380]]] },
+  { code: 189, name: 'שד הרצל', kind: 'street', osm_name: 'שדרות הרצל', center: [31.7973, 34.6335], lines: [[[31.7960, 34.6320], [31.7973, 34.6335]]] },
+];
 fs.mkdirSync(SHOTS, { recursive: true });
 
 // Block everything external: tiles, fonts, OSM services.
@@ -14,8 +19,13 @@ async function mockExternal(page) {
     if (/overpass-api/.test(url)) {
       return route.fulfill({ json: { elements: [{ type: 'node', id: 1, lat: 31.79, lon: 34.64, tags: { name: 'בדיקה', amenity: 'cafe', outdoor_seating: 'yes' } }] } });
     }
+    if (/supabase\.co\/rest\/v1\/cl_streets/.test(url)) return route.fulfill({ json: STREETS });
     if (/nominatim.*reverse/.test(url)) return route.fulfill({ json: { address: { road: 'הציונות', house_number: '7' } } });
-    if (/nominatim/.test(url)) return route.fulfill({ json: /%D7%9C%D7%90%20%D7%A7%D7%99%D7%99%D7%9D/.test(url) ? [] : [{ lat: '31.787', lon: '34.645' }] });
+    if (/nominatim/.test(url)) {
+      const q = decodeURIComponent(url);
+      if (/לא קיים|רוגוזין/.test(q)) return route.fulfill({ json: [] });
+      return route.fulfill({ json: [{ lat: '31.787', lon: '34.645' }] });
+    }
     if (/\.png|tile/.test(url)) return route.fulfill({ body: PNG, contentType: 'image/png' });
     return route.abort();
   });
@@ -52,7 +62,7 @@ test('one system button holds every technical control', async ({ page }) => {
   await expect(page.getByTestId('system-status')).toHaveText(/הועתק/);
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('#/');
   await expect(drawer.getByRole('link', { name: 'שיחת הפיתוח' })).toHaveAttribute('href', /claude\.ai\/code/);
-  for (const b of ['מפת רחובות', 'תצלום אוויר', 'מפה אפורה']) await drawer.getByRole('button', { name: b }).click();
+  for (const b of ['מפה בהירה', 'תצלום אוויר', 'מפת רחובות אשדוד']) await drawer.getByRole('button', { name: b }).click();
   await drawer.getByRole('button', { name: 'רענון מ-OSM' }).click();
   await expect(page.getByTestId('system-status')).toHaveText(/עודכנו 1/);
   const download = page.waitForEvent('download');
@@ -111,8 +121,11 @@ test('visual guidelines: list, 3D model, right vs wrong, tour and quiz', async (
   await expect(list.getByRole('button')).toHaveCount(12);
   await expect(page.getByTestId('scene3d').locator('canvas')).toBeVisible();
   await list.getByRole('button', { name: /פתח לחזית בלבד/ }).click();
+  await expect(page.getByTestId('verdict').getByTestId('mark-ok')).toBeVisible();
   await page.getByRole('button', { name: 'כך לא' }).click();
   await expect(page.getByTestId('guideline-caption')).toContainText('לא תקין');
+  await expect(page.getByTestId('verdict').getByTestId('mark-no')).toBeVisible();
+  await expect(page.getByTestId('verdict')).toContainText('כך לא');
   await page.waitForTimeout(1600);
   await page.screenshot({ path: `${SHOTS}/guidelines-bad.png` });
   await page.getByRole('button', { name: 'כך נכון' }).click();
@@ -140,14 +153,24 @@ test('closures map: shows closures and adds them by address, list and click', as
   const map = page.getByTestId('closure-map');
   await expect(map.locator('.leaflet-marker-icon')).toHaveCount(12);
   await expect(page.getByTestId('legend')).toContainText('סגירה קיימת');
+  await expect(map.locator('path.leaflet-interactive')).toHaveCount(3);
+  await expect(page.getByRole('link', { name: 'המפה העירונית הרשמית' })).toHaveAttribute('href', /ashdod\.muni\.il/);
   await page.screenshot({ path: `${SHOTS}/map.png` });
+  await page.getByLabel('רחוב').fill('הציונות');
+  await expect(map.locator('.street-label')).toHaveText('הציונות');
+  await expect(page.locator('aside button').filter({ hasText: 'בית קפה הציונות' })).toHaveCount(1);
+  await page.getByRole('button', { name: 'כל העיר' }).click();
   await page.getByRole('tab', { name: 'הוספת סגירות' }).click();
-  await page.getByLabel('כתובת').fill('הציונות 30');
+  await page.getByLabel('כתובת').fill('ציונות 30');
+  await expect(page.getByTestId('street-match')).toContainText('רחוב רשמי: הציונות (סמל 856)');
   await page.getByLabel('שם העסק').fill('קפה בדיקה');
   await page.getByRole('button', { name: 'איתור והוספה למפה' }).click();
-  await expect(page.getByRole('status')).toContainText('נוספה סגירה');
+  await expect(page.getByRole('status')).toContainText('נוספה סגירה בהציונות 30');
   await expect(map.locator('.leaflet-marker-icon')).toHaveCount(13);
-  await page.getByLabel('רשימת כתובות').fill('רוגוזין 4\nקפה ים | לא קיים 1');
+  await page.getByLabel('כתובת').fill('רוגוזין 4');
+  await page.getByRole('button', { name: 'איתור והוספה למפה' }).click();
+  await expect(page.getByRole('status')).toContainText('מוקמה על הרחוב');
+  await page.getByLabel('רשימת כתובות').fill('הציונות 2\nקפה ים | לא קיים 1');
   await page.getByRole('button', { name: 'הוספת כל הכתובות' }).click();
   await expect(page.getByRole('status')).toContainText('נוספו 2', { timeout: 10000 });
   await expect(page.getByText('לא אותרו. לחצו על כתובת ואז על המפה:')).toBeVisible();
@@ -159,12 +182,23 @@ test('closures map: shows closures and adds them by address, list and click', as
   await expect(page.getByLabel('כתובת')).toHaveValue('הציונות 7');
   await page.getByRole('button', { name: 'הוספה למפה' }).click();
   await expect(page.getByRole('status')).toContainText('במיקום שסימנת');
-  await expect(map.locator('.leaflet-marker-icon')).toHaveCount(16);
+  await expect(map.locator('.leaflet-marker-icon')).toHaveCount(17);
   await page.getByRole('button', { name: 'עסקי מזון מ-OSM' }).click();
   await expect(map.locator('.osm-dot').first()).toBeVisible();
   await page.getByRole('tab', { name: /סגירות במפה/ }).click();
   for (const f of ['סגירה קיימת', 'מאושר', 'עונתית', 'פרגוד חורף', 'כל הסוגים', 'הכל']) await page.getByRole('button', { name: f, exact: true }).first().click();
   await page.screenshot({ path: `${SHOTS}/map-added.png` });
+  expect(errors).toEqual([]);
+});
+
+test('street matching still works on a repeat visit (cached streets)', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('/#/map');
+  await expect(page.getByTestId('closure-map').locator('path.leaflet-interactive')).toHaveCount(3);
+  await page.reload();
+  await page.getByRole('tab', { name: 'הוספת סגירות' }).click();
+  await page.getByLabel('כתובת').fill('שדרות הרצל 3');
+  await expect(page.getByTestId('street-match')).toContainText('שד הרצל');
   expect(errors).toEqual([]);
 });
 
