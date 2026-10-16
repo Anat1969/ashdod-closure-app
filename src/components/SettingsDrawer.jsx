@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import BackupControls from './BackupMenu';
-import { useSettings, setSettings } from '@/lib/settings';
+import { useSettings, setSettings, useInstallPrompt, DEV_CHAT_URL } from '@/lib/settings';
 import { BASE_MAPS, refreshOsmVenues } from '@/lib/map';
 import { loadDemoData, removeDemoData } from '@/lib/demoData';
 import { clearRecords } from '@/api/localDb';
@@ -22,6 +22,11 @@ export default function SettingsDrawer({ onClose }) {
   const settings = useSettings();
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const { canInstall, install } = useInstallPrompt();
+
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(window.location.href); setMsg('הקישור לדף הנוכחי הועתק'); } catch { window.prompt('העתיקו את הקישור:', window.location.href); }
+  };
 
   const run = async (fn) => {
     setBusy(true);
@@ -36,9 +41,18 @@ export default function SettingsDrawer({ onClose }) {
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.22 }}
       className="absolute inset-x-0 top-full bg-blue-50/95 backdrop-blur border-b border-blue-200 text-blue-900 shadow-2xl max-h-[75vh] overflow-y-auto"
-      data-testid="settings-drawer"
+      data-testid="system-drawer"
     >
-      <div className="max-w-7xl mx-auto p-4 grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      <div className="max-w-7xl mx-auto p-4 grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <Section title="שיתוף והתקנה">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={chip(false)} onClick={copyLink}>העתקת קישור</button>
+            <a href={DEV_CHAT_URL} target="_blank" rel="noreferrer" className={chip(false)}>שיחת הפיתוח</a>
+            {canInstall && <button type="button" className={chip(true)} onClick={install}>התקנת האפליקציה</button>}
+          </div>
+          {!canInstall && <p className="text-xs text-blue-500">להתקנה: ב-Chrome, תפריט שלוש הנקודות ואז "התקנת האפליקציה".</p>}
+        </Section>
+
         <Section title="גיבוי נתונים">
           <BackupControls />
         </Section>
@@ -76,10 +90,10 @@ export default function SettingsDrawer({ onClose }) {
         </Section>
       </div>
       <div className="max-w-7xl mx-auto px-4 pb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-blue-700 min-h-[1.25rem]" role="status">{msg}</p>
+        <p className="text-sm text-blue-700 min-h-[1.25rem]" role="status" data-testid="system-status">{msg}</p>
         <div className="flex gap-2">
           {msg && <button type="button" onClick={() => window.location.reload()} className="text-sm underline text-blue-700">רענון התצוגה</button>}
-          <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg text-sm bg-blue-900 text-white">סגירת ההגדרות</button>
+          <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg text-sm bg-blue-900 text-white">סגירה</button>
         </div>
       </div>
     </motion.div>

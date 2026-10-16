@@ -1,8 +1,8 @@
 // Tiny persisted settings store (per browser), shared across pages.
 import { useSyncExternalStore } from 'react';
 
-const KEY = 'ashdod-closure:settings';
-const DEFAULTS = { baseMap: 'grey', showOsm: true, showApps: true };
+const KEY = 'ashdod-closure:settings-v2';
+const DEFAULTS = { baseMap: 'grey', showOsm: false, showApps: true };
 const listeners = new Set();
 
 function read() {

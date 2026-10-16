@@ -12,6 +12,7 @@ export const STATUS_LABELS = {
   pending_review: 'ממתין לבדיקה',
   approved: 'מאושר',
   rejected: 'נדחה',
+  mapped: 'סגירה קיימת',
 };
 
 // Wording used in reports / history ("the application was ...")
@@ -20,13 +21,15 @@ export const STATUS_ACTION_LABELS = {
   rejected: 'נדחתה',
   pending_owner: 'הוחזרה לתיקון',
   pending_review: 'בבדיקה',
+  mapped: 'סומנה כסגירה קיימת',
 };
 
 export const STATUS_STYLES = {
   pending_owner: 'bg-sky-50 text-sky-800 border-sky-200',
   pending_review: 'bg-amber-100 text-amber-700 border-amber-200',
   approved: 'bg-green-100 text-green-700 border-green-200',
-  rejected: 'bg-red-100 text-red-600 border-red-200',
+  rejected: 'bg-red-100 text-red-700 border-red-200',
+  mapped: 'bg-violet-50 text-violet-800 border-violet-200',
 };
 
 export const CHECKLIST_TYPE1 = [

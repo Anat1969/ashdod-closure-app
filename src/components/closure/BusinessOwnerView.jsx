@@ -3,18 +3,11 @@ import { useAuth } from '@/lib/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import ApplicationWizard from './ApplicationWizard';
+import OwnerIntro from './OwnerIntro';
 import StatusBadge from './StatusBadge';
 import { typeLabel } from './constants';
-import { Plus, FileText, RefreshCw, ClipboardList, FormInput, Layers, Upload, Clock, CheckCircle2, Search } from '@/lib/noIcons';
+import { Plus, FileText, RefreshCw, Search } from '@/lib/noIcons';
 
-const PROCESS_STEPS = [
-  { icon: ClipboardList, label: 'פתיחת בקשה' },
-  { icon: FormInput, label: 'מילוי פרטים' },
-  { icon: Layers, label: 'בחירת סוג הסגירה' },
-  { icon: Upload, label: 'העלאת תוכניות' },
-  { icon: Clock, label: 'מעקב סטטוס' },
-  { icon: CheckCircle2, label: 'אישור העירייה' },
-];
 
 export default function BusinessOwnerView() {
   const { currentUser } = useAuth();
@@ -31,7 +24,7 @@ export default function BusinessOwnerView() {
     if (!currentUser) return;
     setLoading(true);
     try {
-      setApps(await base44.entities.ClosureApplication.filter({ created_by: currentUser.email }, '-updated_date'));
+      setApps((await base44.entities.ClosureApplication.filter({ created_by: currentUser.email }, '-updated_date')).filter(a => a.status !== 'mapped'));
     } finally {
       setLoading(false);
     }
@@ -68,35 +61,10 @@ export default function BusinessOwnerView() {
 
   return (
     <div>
-      {/* Process Steps Banner */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6">
-        <h2 className="text-xl font-bold text-blue-900 mb-4">מסלול בעל עסק — שלבי התהליך</h2>
-        <div className="flex flex-wrap gap-2 items-center">
-          {PROCESS_STEPS.map((step, i) => {
-            const Icon = step.icon;
-            const isLast = i === PROCESS_STEPS.length - 1;
-            return (
-              <div key={i} className="flex items-center gap-2">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${
-                  isLast
-                    ? 'bg-green-100 text-green-700 border border-green-200'
-                    : 'bg-white text-blue-700 border border-blue-200'
-                }`}>
-                  <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold text-white ${
-                    isLast ? 'bg-green-500' : 'bg-blue-500'
-                  }`}>{i + 1}</span>
-                  <Icon className="w-4 h-4" />
-                  {step.label}
-                </div>
-                {!isLast && <span className="w-4 h-px bg-blue-300" />}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <OwnerIntro />
 
       {/* Search section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+      <div className="paper rounded-xl p-4 mb-6">
         <h3 className="text-sm font-medium text-gray-700 mb-3">חיפוש בקשה קיימת לפי מייל / שם עסק / מספר בקשה</h3>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -139,7 +107,7 @@ export default function BusinessOwnerView() {
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">הבקשות שלי</h2>
+        <h2 className="text-2xl font-light text-blue-950">הבקשות שלי</h2>
         <button
           onClick={openNew}
           className="flex items-center gap-2 bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm font-medium">
