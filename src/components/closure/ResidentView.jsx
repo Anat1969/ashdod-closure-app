@@ -52,10 +52,10 @@ export default function ResidentView() {
   const menuItems = menuApp ? menuItemsOf(menuApp) : [];
 
   return (
-    <div dir="rtl" className="flex flex-col md:h-[calc(100vh-150px)] md:min-h-[520px]">
+    <div dir="rtl" className="flex flex-col md:h-[calc(100vh-140px)] md:min-h-[560px]">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold text-gray-800 mb-1">מסלול תושב — סגירות מאושרות</h2>
-        <p className="text-gray-500 text-sm">כל העסקים שקיבלו היתר סגירה מהעירייה</p>
+        <h2 className="text-2xl font-light text-blue-950 mb-1">סגירות מאושרות</h2>
+        <p className="text-blue-600 text-sm">כל העסקים שקיבלו היתר סגירה מהעירייה</p>
       </div>
 
       <div className="flex flex-col-reverse md:flex-row flex-1 gap-4 md:overflow-hidden">

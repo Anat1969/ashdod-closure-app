@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
-  CHAPTERS, ALL_CLAUSES, POLICY_META, KEYWORDS, citationOf, searchClauses, normalize, escapeRegExp,
+  CHAPTERS, ALL_CLAUSES, POLICY_META, KEYWORDS, searchClauses, normalize, escapeRegExp,
 } from '@/lib/policy';
-import { QUIZ } from '@/lib/simulator';
 
 function Highlight({ text, query }) {
   const words = normalize(query).split(' ').filter(Boolean);
@@ -14,17 +13,11 @@ function Highlight({ text, query }) {
     words.some(w => normalize(part) === w) ? <mark key={i} className="hit">{part}</mark> : part);
 }
 
-async function copy(text) {
-  try { await navigator.clipboard.writeText(text); return true; } catch { window.prompt('העתיקו:', text); return false; }
-}
-
-function ClauseCard({ clause, query, active, isHit, onCopied }) {
+function ClauseCard({ clause, query, active, isHit }) {
   const ref = useRef(null);
-  const quizCount = QUIZ.filter(q => q.clause === clause.id).length;
   useEffect(() => {
     if (active) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [active]);
-  const link = `${window.location.origin}${window.location.pathname}#/policy?c=${encodeURIComponent(clause.id)}`;
   return (
     <motion.article
       ref={ref}
@@ -40,15 +33,6 @@ function ClauseCard({ clause, query, active, isHit, onCopied }) {
         <h4 className="font-semibold text-blue-900"><Highlight text={clause.label} query={query} /></h4>
       </div>
       <p className="text-[15px] leading-7 text-blue-800"><Highlight text={clause.text} query={query} /></p>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        <button type="button" onClick={async () => { await copy(`"${clause.text}"\n${citationOf(clause)}`); onCopied(`הציטוט מסעיף ${clause.id} הועתק`); }}
-          className="px-2.5 py-1 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50">העתקת ציטוט</button>
-        <button type="button" onClick={async () => { await copy(link); onCopied(`הקישור לסעיף ${clause.id} הועתק`); }}
-          className="px-2.5 py-1 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50">קישור לסעיף</button>
-        {quizCount > 0 && (
-          <Link to={`/learn?mode=quiz&clause=${encodeURIComponent(clause.id)}`} className="px-2.5 py-1 rounded-md border border-teal-200 text-teal-800 hover:bg-teal-50">תרגול הסעיף</Link>
-        )}
-      </div>
     </motion.article>
   );
 }
@@ -57,7 +41,6 @@ export default function PolicyPage() {
   const [params, setParams] = useSearchParams();
   const query = params.get('q') || '';
   const activeId = params.get('c') || '';
-  const [toast, setToast] = useState('');
   const [hitIndex, setHitIndex] = useState(0);
 
   const hits = useMemo(() => searchClauses(query), [query]);
@@ -79,14 +62,7 @@ export default function PolicyPage() {
 
   useEffect(() => { setHitIndex(0); }, [query]);
 
-  const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2000); };
 
-  const fullText = [
-    `${POLICY_META.title}, ${POLICY_META.issuer}`,
-    `תוקף בוועדה מס' ${POLICY_META.committee} מיום ${POLICY_META.date}`,
-    '',
-    ...CHAPTERS.flatMap(ch => [`${ch.id}. ${ch.title}`, ...ch.clauses.map(c => `${c.id} ${c.label}: ${c.text}`), '']),
-  ].join('\n');
 
   return (
     <div className="space-y-6">
@@ -96,7 +72,6 @@ export default function PolicyPage() {
           <h1 className="text-3xl sm:text-4xl font-extralight tracking-tight">{POLICY_META.title}</h1>
           <p className="mt-2 text-blue-200 text-sm font-mono">{POLICY_META.issuer} · ועדה {POLICY_META.committee} · {POLICY_META.date}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" onClick={async () => { await copy(fullText); flash('המסמך המלא הועתק'); }} className="px-3 py-1.5 rounded-lg text-sm bg-white text-blue-900 hover:bg-blue-100">העתקת המסמך המלא</button>
             <button type="button" onClick={() => window.print()} className="px-3 py-1.5 rounded-lg text-sm border border-blue-600 text-blue-100 hover:bg-blue-800">הדפסה</button>
           </div>
         </div>
@@ -133,7 +108,7 @@ export default function PolicyPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
           <nav className="sticky top-[270px] paper rounded-xl p-3 text-sm space-y-3 max-h-[calc(100vh-290px)] overflow-y-auto">
             <div className="label">תוכן עניינים</div>
@@ -162,7 +137,7 @@ export default function PolicyPage() {
                 </h2>
                 <div className="space-y-2.5">
                   {visible.map(c => (
-                    <ClauseCard key={c.id} clause={c} query={query} active={activeId === c.id} isHit={hitIds.has(c.id)} onCopied={flash} />
+                    <ClauseCard key={c.id} clause={c} query={query} active={activeId === c.id} isHit={hitIds.has(c.id)} />
                   ))}
                 </div>
               </section>
@@ -174,12 +149,6 @@ export default function PolicyPage() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-5 inset-x-0 mx-auto w-fit z-[2000] ink px-4 py-2 rounded-lg shadow-xl text-sm" role="status">{toast}</motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

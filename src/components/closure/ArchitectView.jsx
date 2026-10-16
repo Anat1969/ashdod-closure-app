@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from './StatusBadge';
+import ArchitectIntro from './ArchitectIntro';
 import { nextApplicationIds } from '@/lib/applicationId';
 import { downloadBlob } from '@/lib/files';
 import { typeLabel, STATUS_LABELS, checklistFor } from './constants';
@@ -57,6 +58,7 @@ const STATUSES = [
   { val: 'pending_owner', label: 'ממתין לבעל עסק' },
   { val: 'approved', label: 'מאושרות' },
   { val: 'rejected', label: 'נדחות' },
+  { val: 'mapped', label: 'סגירות קיימות' },
 ];
 
 const SORT_OPTIONS = [
@@ -204,8 +206,9 @@ export default function ArchitectView() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">מסלול עירייה — בדיקת בקשות</h2>
+      <ArchitectIntro apps={apps} />
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+        <span className="label">ייצוא וייבוא</span>
         <button
           type="button"
           onClick={() => exportApplicationsToExcel(filtered)}

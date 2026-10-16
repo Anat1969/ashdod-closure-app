@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { HashRouter as Router, Route, Routes } from 'react-router-dom';
+import { HashRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider } from '@/lib/AuthContext';
 import Layout from './components/Layout';
@@ -12,7 +12,7 @@ import MapView from './pages/MapView';
 import ResidentsPage from './pages/ResidentsPage';
 import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import PolicyPage from './pages/PolicyPage';
-import LearnPage from './pages/LearnPage';
+import GuidelinesPage from './pages/GuidelinesPage';
 
 const AuthenticatedApp = () => {
   // Render the main app
@@ -26,7 +26,8 @@ const AuthenticatedApp = () => {
         <Route path="/residents" element={<ResidentsPage />} />
         <Route path="/architect/:id" element={<ApplicationDetailPage />} />
         <Route path="/policy" element={<PolicyPage />} />
-        <Route path="/learn" element={<LearnPage />} />
+        <Route path="/guidelines" element={<GuidelinesPage />} />
+        <Route path="/learn" element={<Navigate to="/guidelines" replace />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

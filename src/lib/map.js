@@ -88,10 +88,11 @@ export function approxCoords(address) {
 
 export const coordsOf = (app) => (hasCoords(app) ? [Number(app.lat), Number(app.lng)] : approxCoords(app?.address));
 
-// Free-text address search via OpenStreetMap Nominatim, limited to Ashdod.
+// Free-text address search via OpenStreetMap Nominatim (free, no key), limited to Ashdod.
+const ASHDOD_VIEWBOX = '34.59,31.87,34.72,31.73';
 export async function geocodeAddress(address) {
   const q = /אשדוד|ashdod/i.test(address) ? address : `${address}, אשדוד`;
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=il&accept-language=he&q=${encodeURIComponent(q)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=il&accept-language=he&viewbox=${ASHDOD_VIEWBOX}&bounded=1&q=${encodeURIComponent(q)}`;
   const res = await fetch(url, { headers: { Accept: 'application/json' } });
   if (!res.ok) throw new Error('שירות החיפוש אינו זמין כרגע');
   const [hit] = await res.json();
@@ -99,11 +100,21 @@ export async function geocodeAddress(address) {
   return [Number(hit.lat), Number(hit.lon)];
 }
 
+export async function reverseGeocode([lat, lng]) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&accept-language=he&zoom=18&lat=${lat}&lon=${lng}`;
+  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!res.ok) return '';
+  const j = await res.json();
+  const a = j.address || {};
+  return [a.road, a.house_number].filter(Boolean).join(' ') || '';
+}
+
 const STATUS_PIN_COLORS = {
   approved: '#16a34a',
   pending_review: '#d97706',
   pending_owner: '#2563eb',
   rejected: '#dc2626',
+  mapped: '#7c3aed',
 };
 
 const iconCache = new Map();
@@ -118,9 +129,9 @@ export function statusIcon(status, approximate = false, type = 'type1') {
       : `background:${color};border:3px solid #fff`;
     iconCache.set(key, L.divIcon({
       className: '',
-      html: `<div style="${style};width:22px;height:22px;border-radius:${type === 'type2' ? '5px' : '50%'};box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
-      iconSize: [22, 22],
-      iconAnchor: [11, 11],
+      html: `<div style="${style};width:24px;height:24px;border-radius:${type === 'type2' ? '6px' : '50%'};box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
       popupAnchor: [0, -12],
     }));
   }
