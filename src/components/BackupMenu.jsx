@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, Upload, HardDrive } from 'lucide-react';
 import { exportBackup, importBackup, storageEstimate } from '@/api/localDb';
 import { downloadBlob } from '@/lib/files';
 
@@ -9,31 +8,22 @@ function readLastBackup() {
   try { return localStorage.getItem(LAST_BACKUP_KEY); } catch { return null; }
 }
 
-function formatMb(bytes) {
-  return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+const formatMb = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+
+export function useNeedsBackup() {
+  const last = readLastBackup();
+  const days = last ? Math.floor((Date.now() - new Date(last)) / 86400000) : null;
+  return days === null || days >= 7;
 }
 
-// The standalone app stores data in this browser only; this menu moves it between devices.
-export default function BackupMenu() {
-  const [open, setOpen] = useState(false);
+// Backup controls, shown inside the settings drawer. Data lives in this browser only.
+export default function BackupControls() {
   const [busy, setBusy] = useState(false);
   const [usage, setUsage] = useState(null);
   const [lastBackup, setLastBackup] = useState(readLastBackup);
   const fileRef = useRef(null);
-  const rootRef = useRef(null);
 
-  useEffect(() => {
-    if (!open) return;
-    storageEstimate().then(setUsage);
-    const onDocClick = (e) => { if (!rootRef.current?.contains(e.target)) setOpen(false); };
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  useEffect(() => { storageEstimate().then(setUsage); }, []);
 
   const handleExport = async () => {
     setBusy(true);
@@ -50,7 +40,6 @@ export default function BackupMenu() {
       alert('שגיאה ביצירת הגיבוי: ' + err.message);
     } finally {
       setBusy(false);
-      setOpen(false);
     }
   };
 
@@ -69,44 +58,26 @@ export default function BackupMenu() {
       alert('שגיאה בייבוא: ' + (err instanceof SyntaxError ? 'הקובץ אינו קובץ גיבוי תקין' : err.message));
     } finally {
       setBusy(false);
-      setOpen(false);
     }
   };
 
-  const daysSinceBackup = lastBackup ? Math.floor((Date.now() - new Date(lastBackup)) / 86400000) : null;
-  const needsBackup = daysSinceBackup === null || daysSinceBackup >= 7;
+  const days = lastBackup ? Math.floor((Date.now() - new Date(lastBackup)) / 86400000) : null;
+  const needsBackup = days === null || days >= 7;
 
   return (
-    <div ref={rootRef} className="relative flex-shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        disabled={busy}
-        aria-expanded={open}
-        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-800 hover:bg-blue-700 text-sm text-blue-200 hover:text-white transition-all disabled:opacity-50"
-      >
-        <HardDrive className="w-4 h-4" />
-        <span className="hidden sm:inline">גיבוי נתונים</span>
-        {needsBackup && <span className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-amber-400" title="מומלץ לגבות" />}
-      </button>
-      {open && (
-        <div className="absolute left-0 mt-2 w-72 bg-white text-gray-800 rounded-xl shadow-lg border border-gray-200 p-2 z-[1000]">
-          <p className="text-xs text-gray-500 px-2 py-1.5 leading-relaxed">
-            הנתונים נשמרים בדפדפן זה בלבד. כדאי לייצא גיבוי באופן קבוע ולשמור אותו במקום בטוח.
-          </p>
-          <p className={`text-xs px-2 pb-1.5 ${needsBackup ? 'text-amber-600' : 'text-green-600'}`}>
-            {lastBackup ? `גיבוי אחרון: ${new Date(lastBackup).toLocaleDateString('he-IL')}` : 'עדיין לא בוצע גיבוי'}
-            {usage?.usage ? ` · בשימוש ${formatMb(usage.usage)}` : ''}
-          </p>
-          <button type="button" onClick={handleExport} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-gray-100">
-            <Download className="w-4 h-4" /> ייצוא גיבוי לקובץ
-          </button>
-          <button type="button" onClick={() => fileRef.current?.click()} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-gray-100">
-            <Upload className="w-4 h-4" /> ייבוא גיבוי מקובץ
-          </button>
-          <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImport} />
-        </div>
-      )}
+    <div className="space-y-2">
+      <p className="text-xs text-blue-500 leading-relaxed">
+        הנתונים נשמרים בדפדפן זה בלבד. כדאי לייצא גיבוי באופן קבוע ולשמור אותו במקום בטוח.
+      </p>
+      <p className={`text-xs font-mono ${needsBackup ? 'text-amber-700' : 'text-green-700'}`}>
+        {lastBackup ? `גיבוי אחרון: ${new Date(lastBackup).toLocaleDateString('he-IL')}` : 'עדיין לא בוצע גיבוי'}
+        {usage?.usage ? ` · בשימוש ${formatMb(usage.usage)}` : ''}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy} onClick={handleExport} className="px-3 py-2 rounded-lg text-sm bg-blue-800 text-white hover:bg-blue-700 disabled:opacity-50">ייצוא גיבוי לקובץ</button>
+        <button type="button" disabled={busy} onClick={() => fileRef.current?.click()} className="px-3 py-2 rounded-lg text-sm border border-blue-200 hover:bg-blue-50 disabled:opacity-50">ייבוא גיבוי מקובץ</button>
+      </div>
+      <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImport} data-testid="backup-file" />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
-import { Search, Loader2 } from 'lucide-react';
-import { ASHDOD_CENTER, TILE_URL, TILE_ATTRIBUTION, geocodeAddress } from '@/lib/map';
+import { Search, Loader2 } from '@/lib/noIcons';
+import { ASHDOD_CENTER,  geocodeAddress } from '@/lib/map';
+import { baseMapOf } from '@/lib/map';
+import { useSettings } from '@/lib/settings';
 
 function ClickHandler({ onSelect }) {
   useMapEvents({ click: (e) => onSelect(e.latlng.lat, e.latlng.lng) });
@@ -17,6 +19,7 @@ function Recenter({ pos }) {
 }
 
 export default function MapPicker({ lat, lng, onSelect, address = '' }) {
+  const baseMap = baseMapOf(useSettings().baseMap);
   const pos = lat != null && lng != null ? [Number(lat), Number(lng)] : null;
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
@@ -57,8 +60,8 @@ export default function MapPicker({ lat, lng, onSelect, address = '' }) {
         </button>
       </div>
       <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative z-0" style={{ height: 240 }}>
-        <MapContainer center={pos || ASHDOD_CENTER} zoom={pos ? 16 : 14} className="w-full h-full">
-          <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
+        <MapContainer center={pos || ASHDOD_CENTER} zoom={pos ? 16 : 14} className="w-full h-full map-ltr">
+          <TileLayer key={baseMap.url} attribution={baseMap.attribution} url={baseMap.url} />
           <ClickHandler onSelect={onSelect} />
           <Recenter pos={pos} />
           {pos && <Marker position={pos} />}
@@ -66,9 +69,9 @@ export default function MapPicker({ lat, lng, onSelect, address = '' }) {
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
       {pos ? (
-        <p className="text-xs text-green-600">✓ מיקום נבחר: {pos[0].toFixed(5)}, {pos[1].toFixed(5)}</p>
+        <p className="text-xs text-green-600">מיקום נבחר: {pos[0].toFixed(5)}, {pos[1].toFixed(5)}</p>
       ) : (
-        <p className="text-xs text-amber-600">⚠ לא נבחר מיקום — לחצו על המפה או על "מצא לפי הכתובת"</p>
+        <p className="text-xs text-amber-600">לא נבחר מיקום — לחצו על המפה או על "מצא לפי הכתובת"</p>
       )}
     </div>
   );

@@ -9,7 +9,16 @@ module.exports = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
+  		fontFamily: {
+  			sans: ['"IBM Plex Sans Hebrew"', 'system-ui', 'sans-serif'],
+  			mono: ['"IBM Plex Mono"', '"IBM Plex Sans Hebrew"', 'monospace'],
+  		},
   		colors: {
+  			// Architectural graphite palette replaces the original blue across the app.
+  			blue: {
+  				50: '#f4f5f7', 100: '#e7e9ed', 200: '#cfd3da', 300: '#a9b0bb', 400: '#7d8796',
+  				500: '#5b6574', 600: '#46505e', 700: '#353d49', 800: '#262c35', 900: '#181c22', 950: '#0e1014',
+  			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

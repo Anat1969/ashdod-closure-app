@@ -1,89 +1,113 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '@/lib/AuthContext';
-import { LayoutDashboard, Building2, HardHat, Map, Users, Menu, X, BookOpen } from 'lucide-react';
-import { useState } from 'react';
-import BackupMenu from './BackupMenu';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import SettingsDrawer from './SettingsDrawer';
+import { useNeedsBackup } from './BackupMenu';
+import { useInstallPrompt, DEV_CHAT_URL } from '@/lib/settings';
 
 const NAV_ITEMS = [
-  { path: '/', label: 'דשבורד', icon: LayoutDashboard, adminOnly: false },
-  { path: '/policy', label: 'מדיניות', icon: BookOpen, adminOnly: false },
-  { path: '/owner', label: 'מסלול בעל עסק', icon: Building2, adminOnly: false },
-  { path: '/architect', label: 'מסלול עירייה', icon: HardHat, adminOnly: false },
-  { path: '/map', label: 'מפת סגירות', icon: Map, adminOnly: false },
-  { path: '/residents', label: 'מסלול תושב', icon: Users, adminOnly: false },
+  { path: '/', label: 'בית', end: true },
+  { path: '/policy', label: 'מסמך המדיניות' },
+  { path: '/learn', label: 'משחק המדיניות' },
+  { path: '/map', label: 'מפת סגירות' },
+  { path: '/owner', label: 'בעל עסק' },
+  { path: '/architect', label: 'עירייה' },
+  { path: '/residents', label: 'תושב' },
 ];
 
+const barBtn = 'flex-none whitespace-nowrap px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-medium transition border';
+
 export default function Layout() {
-  const { currentUser } = useAuth();
   const location = useLocation();
-  const isAdmin = currentUser?.role === 'admin';
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const needsBackup = useNeedsBackup();
+  const { canInstall, install } = useInstallPrompt();
 
-  const visibleItems = NAV_ITEMS.filter(i => !i.adminOnly || isAdmin);
+  useEffect(() => { setSettingsOpen(false); window.scrollTo(0, 0); }, [location.pathname]);
 
-  const NavLinks = () => (
-    <>
-      {visibleItems.map(item => {
-        const Icon = item.icon;
-        const active = item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path);
-        return (
-          <Link
-            key={item.path}
-            to={item.path}
-            onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              active
-                ? 'bg-blue-700 text-white shadow-sm'
-                : 'text-blue-100 hover:bg-blue-800 hover:text-white'
-            }`}
-          >
-            <Icon className="w-4 h-4 flex-shrink-0" />
-            {item.label}
-          </Link>
-        );
-      })}
-    </>
-  );
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+    } catch {
+      window.prompt('העתיקו את הקישור:', window.location.href);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
 
   return (
-    <div dir="rtl" className="min-h-screen flex flex-col bg-gray-50">
-      {/* Top bar */}
-      <header className="bg-blue-900 text-white shadow-lg flex-shrink-0">
-        <div className="flex items-center gap-4 px-4 py-3">
-          <button
-            className="sm:hidden p-1.5 rounded-lg hover:bg-blue-800"
-            onClick={() => setMobileOpen(o => !o)}
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-          <img
-            src={`${import.meta.env.BASE_URL}logo.svg`}
-            alt=""
-            className="h-10 w-10 flex-shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold leading-tight">מנהל סגירות — עיריית אשדוד</h1>
-            <p className="text-blue-300 text-xs hidden sm:block">היתרי סגירה עונתיים וחורף</p>
+    <div dir="rtl" className="min-h-screen grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_1fr]">
+      <header className="sticky top-0 z-[1100] ink shadow-[0_10px_30px_-12px_rgba(14,16,20,.6)]">
+        <div className="blueprint">
+          <div className="max-w-7xl mx-auto flex items-center gap-3 px-4 pt-3 pb-2 min-w-0">
+            <Link to="/" className="flex items-center gap-3 min-w-0 group" data-testid="home-link">
+              <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="h-9 w-9 flex-none rounded-lg shadow-lg transition group-hover:scale-105" />
+              <div className="min-w-0">
+                <div className="text-base sm:text-lg font-semibold leading-tight truncate">מנהל סגירות אשדוד</div>
+                <div className="label !text-blue-300 hidden sm:block !normal-case">סגירות חורף ועונתיות · מדיניות 202411</div>
+              </div>
+            </Link>
+            <div className="flex-1" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              <button type="button" onClick={copyLink} className={`${barBtn} border-blue-700 text-blue-100 hover:bg-blue-800`}>
+                {copied ? 'הקישור הועתק' : 'העתקת קישור'}
+              </button>
+              <a href={DEV_CHAT_URL} target="_blank" rel="noreferrer" className={`${barBtn} border-blue-700 text-blue-100 hover:bg-blue-800 hidden sm:inline-block`}>
+                שיחת הפיתוח
+              </a>
+              {canInstall && (
+                <button type="button" onClick={install} className={`${barBtn} border-transparent bg-white text-blue-900 hover:bg-blue-100`}>
+                  התקנת האפליקציה
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(o => !o)}
+                aria-expanded={settingsOpen}
+                className={`${barBtn} relative ${settingsOpen ? 'bg-white text-blue-900 border-white' : 'border-blue-700 text-blue-100 hover:bg-blue-800'}`}
+              >
+                הגדרות
+                {needsBackup && <span className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-blue-900" title="מומלץ לגבות" />}
+              </button>
+            </div>
           </div>
-          <BackupMenu />
+          <nav className="max-w-7xl mx-auto flex gap-1 px-4 pb-2.5 overflow-x-auto min-w-0 [scrollbar-width:none]">
+            {NAV_ITEMS.map(item => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.end}
+                className={({ isActive }) => `relative flex-none px-3 py-1.5 rounded-lg text-sm transition ${isActive ? 'text-blue-950' : 'text-blue-200 hover:text-white hover:bg-white/5'}`}
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-lg bg-white shadow" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+                    <span className="relative">{item.label}</span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+            <a href={DEV_CHAT_URL} target="_blank" rel="noreferrer" className="sm:hidden flex-none px-3 py-1.5 rounded-lg text-sm text-blue-300">שיחת הפיתוח</a>
+          </nav>
         </div>
-
-        {/* Desktop nav */}
-        <nav className="hidden sm:flex items-center gap-1 px-4 pb-3">
-          <NavLinks />
-        </nav>
+        <AnimatePresence>
+          {settingsOpen && <SettingsDrawer onClose={() => setSettingsOpen(false)} />}
+        </AnimatePresence>
       </header>
 
-      {/* Mobile nav drawer */}
-      {mobileOpen && (
-        <div className="sm:hidden bg-blue-900 px-4 pb-4 flex flex-col gap-1 border-t border-blue-800">
-          <NavLinks />
-        </div>
-      )}
-
-      {/* Page content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
-        <Outlet />
+      <main className="max-w-7xl w-full mx-auto px-4 py-6 min-w-0">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

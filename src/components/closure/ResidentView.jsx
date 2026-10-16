@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { MapPin, Search, Utensils, X } from 'lucide-react';
+import { MapPin, Search, Utensils } from '@/lib/noIcons';
 import { typeLabel, menuItemsOf } from './constants';
 import { isImageUrl } from '@/lib/files';
-import { ASHDOD_CENTER, TILE_URL, TILE_ATTRIBUTION, coordsOf, hasCoords, statusIcon } from '@/lib/map';
+import { ASHDOD_CENTER,  coordsOf, hasCoords, statusIcon } from '@/lib/map';
+import { baseMapOf } from '@/lib/map';
+import { useSettings } from '@/lib/settings';
 
 function FlyTo({ coords }) {
   const map = useMap();
@@ -21,6 +23,7 @@ function coverImage(app) {
 }
 
 export default function ResidentView() {
+  const baseMap = baseMapOf(useSettings().baseMap);
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -123,8 +126,8 @@ export default function ResidentView() {
 
         {/* Map */}
         <div className="md:flex-1 rounded-xl overflow-hidden border border-gray-200 relative z-0 h-[55vh] md:h-auto">
-          <MapContainer center={ASHDOD_CENTER} zoom={13} className="w-full h-full">
-            <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
+          <MapContainer center={ASHDOD_CENTER} zoom={13} className="w-full h-full map-ltr">
+            <TileLayer key={baseMap.url} attribution={baseMap.attribution} url={baseMap.url} />
             {flyTo && <FlyTo coords={flyTo} key={flyTo.join(',')} />}
             {filtered.map(app => {
               const cover = coverImage(app);
@@ -172,7 +175,7 @@ export default function ResidentView() {
                 <p className="text-sm text-gray-500">תפריט העסק</p>
               </div>
               <button type="button" onClick={() => setMenuApp(null)} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="סגור">
-                <X className="w-5 h-5 text-gray-500" />
+                <span className="text-sm text-gray-600">סגירה</span>
               </button>
             </div>
             <div className="divide-y divide-gray-100 overflow-y-auto">

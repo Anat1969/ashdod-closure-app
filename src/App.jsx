@@ -12,6 +12,7 @@ import MapView from './pages/MapView';
 import ResidentsPage from './pages/ResidentsPage';
 import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import PolicyPage from './pages/PolicyPage';
+import LearnPage from './pages/LearnPage';
 
 const AuthenticatedApp = () => {
   // Render the main app
@@ -25,6 +26,7 @@ const AuthenticatedApp = () => {
         <Route path="/residents" element={<ResidentsPage />} />
         <Route path="/architect/:id" element={<ApplicationDetailPage />} />
         <Route path="/policy" element={<PolicyPage />} />
+        <Route path="/learn" element={<LearnPage />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

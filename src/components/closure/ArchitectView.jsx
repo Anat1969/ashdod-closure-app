@@ -6,7 +6,7 @@ import { nextApplicationIds } from '@/lib/applicationId';
 import { downloadBlob } from '@/lib/files';
 import { typeLabel, STATUS_LABELS, checklistFor } from './constants';
 
-import { CheckCircle, XCircle, Clock, FileText, Search, SlidersHorizontal, Upload, Loader2, Download, FileSpreadsheet } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Search, SlidersHorizontal, Upload, Loader2, Download, FileSpreadsheet } from '@/lib/noIcons';
 
 async function exportApplicationsToExcel(apps) {
   const XLSX = await import('xlsx');
