@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import ApplicationWizard from './ApplicationWizard';
 import StatusBadge from './StatusBadge';
 import { typeLabel } from './constants';
-import { Plus, FileText, RefreshCw, ClipboardList, FormInput, Layers, Upload, Clock, CheckCircle2, Search } from 'lucide-react';
+import { Plus, FileText, RefreshCw, ClipboardList, FormInput, Layers, Upload, Clock, CheckCircle2, Search } from '@/lib/noIcons';
 
 const PROCESS_STEPS = [
   { icon: ClipboardList, label: 'פתיחת בקשה' },
@@ -88,7 +88,7 @@ export default function BusinessOwnerView() {
                   <Icon className="w-4 h-4" />
                   {step.label}
                 </div>
-                {!isLast && <span className="text-blue-300 text-lg">←</span>}
+                {!isLast && <span className="w-4 h-px bg-blue-300" />}
               </div>
             );
           })}

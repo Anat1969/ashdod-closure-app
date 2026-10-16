@@ -1,261 +1,185 @@
-import { useState, useRef, useEffect } from 'react';
-import { Search, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  CHAPTERS, ALL_CLAUSES, POLICY_META, KEYWORDS, citationOf, searchClauses, normalize, escapeRegExp,
+} from '@/lib/policy';
+import { QUIZ } from '@/lib/simulator';
 
-const SECTIONS = [
-  {
-    id: 'general',
-    title: 'א. כללי',
-    content: [
-      {
-        text: 'מסמך מדיניות זה מכיל הגדרות והנחיות לתכנון ועיצוב סגירות חורף וסגירות עונתית ברחבי העיר אשדוד.',
-      },
-      { text: 'תוקף בועדה מס׳: 202411 בתאריך: 24/10/2024', bold: true },
-    ],
-  },
-  {
-    id: 'definitions',
-    title: 'ב. הגדרות',
-    subsections: [
-      {
-        id: 'type1',
-        title: 'סגירת חורף / פרגוד (טיפוס 1)',
-        params: [
-          {
-            label: 'הגדרה',
-            text: 'הינה מתקן לסגירה וקירוי של המקום בו קיים היתר שימור רחובות להצבת שולחנות וכסאות ברישיון בתקופת החורף (התקופה שמיום 15.10 ועד ליום 15.4 בכל שנה קלנדרית).',
-          },
-          {
-            label: 'תנאי',
-            text: 'הצבת הפרגוד חייבת בקבלת היתר שימור רחובות חדש מדי שנה, טרם הצבתו — הצבה ללא היתר תגרור פעולות אכיפה מידיות להסרתו. הצבת הפרגוד מותנית בקבלת רישיון עסק.',
-          },
-          {
-            label: 'הנחיות',
-            text: 'יש לפרק בתום העונה, ולוודא שלא נשארו אלמנטים בולטים לאחר פירוק.',
-          },
-          {
-            label: 'חומרים',
-            text: 'שימוש בחומרים גמישים כגון: שמשונית / ברזנט על גבי שלד פרופילים אלומיניום / ברזל. יתאפשר שימוש בחומרים של טיפוס 2 ובלבד שיפורק במועד הקצוב.',
-          },
-        ],
-      },
-      {
-        id: 'type2',
-        title: 'סגירה עונתית (טיפוס 2)',
-        params: [
-          {
-            label: 'הגדרה',
-            text: 'סגירה עונתית כהגדרתה בסעיף 26 בתקנות התכנון ובניה (עבודות ומבנים פטורים מהיתר) תשע"ד-2014. מתקן עשוי חומרים קלים, המגן על היושבים בבית אוכל מפני השפעת מזג האוויר.',
-          },
-          {
-            label: 'תנאי',
-            text: 'הקמת המתקן מותנית בקבלת רישיון עסק. המתקן יוקם בהתאם למפורט בהנחיות תכנון ועיצוב.',
-          },
-          {
-            label: 'חומרים',
-            text: 'שימוש בחומרים עמידים כגון שלד פרופילים אלומיניום / ברזל, בעל מילואה מזכוכית בעלת 90% שקיפות לפחות.',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'guidelines',
-    title: 'ג. תנאים והנחיות לתכנון ועיצוב',
-    params: [
-      { label: 'רישיון עסק', text: 'ההצבה מותנית בקיומו של רישיון עסק בתוקף.' },
-      { label: 'תנאי רישיון', text: 'ההצבה היא עפ"י תנאי רישיון העסק והמפה המצבית המוגשת במסגרתו.' },
-      { label: 'סוגי עסקים', text: 'העסקים שלהם תותר ההצבה הם: בתי אוכל; בתי קפה; מזנונים — הכל בהתאם להגדרת חוק רישוי עסקים.' },
-      {
-        label: 'מיקום',
-        text: 'ההצבה תתבצע בשטח פרטי או ציבורי. הצבת הסגירה במקביל, בצמוד ולמול חזית בית העסק. במקרה של קירוי או קולונדה קיימים — יש להתיישר עם קו הקירוי / הקולונדה ולשמור על מעבר חופשי בין חזית המבנה לבין הסגירה. ההצבה לא תמנע גישה לשטחים פרטיים ו/או ציבורים.',
-      },
-      {
-        label: 'מעבר הולכי רגל',
-        text: 'יש לוודא שהמיקום יותיר מרווח של לפחות 2.5 מ"ר בין שפת המדרכה לדופן הסגירה, ובשים לב לפרטי רחוב (תחנות אוטובוס, עצים וכו\'). למקרה של קירוי בנוי או קולונדה — ישמר מרחק כרוחב הקירוי.',
-      },
-      {
-        label: 'מרחק בין פרגודים סמוכים',
-        text: 'יש להביא הסכמה של החנויות הצמודות להתיישרות הסגירה לקיר המשותף.',
-      },
-      {
-        label: 'שטח וגודל הסגירה',
-        text: 'גבולות השטח יקבעו לפי רוחב חזית בית העסק ושמירת מרווחים למעבר הציבור. בסגירה ששטחה עולה על 30 מ"ר יש לבצע תיאום אל מול אדריכלית העיר.',
-      },
-      {
-        label: 'חומרים',
-        text: 'טיפוס 1: חומרים גמישים — שמשונית / ברזנט על שלד אלומיניום / ברזל. טיפוס 2: חומרים עמידים — שלד אלומיניום / ברזל עם מילואה מזכוכית בעלת 90% שקיפות לפחות.',
-      },
-      { label: 'פתח הסגירה', text: 'יהא לחזית ולא לצדדים.' },
-      {
-        label: 'גובה הגג',
-        text: 'יש לוודא שלא יעלה על גובה קומת הקרקע של המבנה. גגות סמוכים צריכים להיות בגבהים זהים.',
-      },
-      {
-        label: 'שיפוע הגג',
-        text: 'יש לשמור על שיפוע מינימלי של 1.5% בגג הסגירה אשר יוסתר בכרכוב היקפי ישר בגובה השיפוע על מנת להסתיר את שיפוע הגג.',
-      },
-      {
-        label: 'שילוט',
-        text: 'שילוט ע"ג הסגירה ייעשה בהתאם למדיניות השילוט העירונית בתחום חזית הסגירה על הכרכוב המקיף.',
-      },
-      {
-        label: 'ניהול מי גשמים',
-        text: 'יש להוביל את מי הגשמים מהגג לתעלת איסוף בקצה הגג ולהורידם בצינור אנכי לקרקע. המרזבים צריכים להיות מוצנעים ולא לבלוט לעבר הרחוב.',
-      },
-      {
-        label: 'ריצוף / חיפוי מדרכה',
-        text: 'חל איסור על ציפוי ו/או הגבהה ו/או הנמכת המדרכה בבמות עץ; דק עץ; דשא מלאכותי/טבעי; משטחי בטון או מתכת; וריצוף השטח במרצפות השונות מן הריצוף הקיים. לא יותר כל שינוי במדרכה וברחבה הציבורית. למעט מקרים מיוחדים של שיפועי קרקע — יתואמו ויאושרו ע"י אדריכלית העיר.',
-      },
-      {
-        label: 'תשתיות',
-        text: 'לא תותר העברת תשתיות גלויה (חשמל, גז או מים). חיבור חשמל או הצבת מתקני חימום / קירור / תאורה יהיו באחריות בעל העסק בלבד ובכפוף לאישור חשמלאי מוסמך.',
-      },
-      {
-        label: 'אישור מהנדס / הנדסאי מבנים',
-        text: 'יש לקבל אישור בדבר יציבות הסגירה.',
-      },
-      {
-        label: 'אישור יועץ בטיחות',
-        text: 'על בעל העסק להחזיק באישור יועץ בטיחות לסגירה, אותו ניתן יהיה להציג עפ"י דרישת העירייה בכל עת.',
-      },
-      {
-        label: 'אישור יועץ נגישות מתו"ס לאנשים בעלי מוגבלויות',
-        text: 'יידרש עבור סגירה עונתית (טיפוס 2) בלבד.',
-      },
-    ],
-  },
-];
-
-function highlight(text, query) {
-  if (!query) return text;
-  const parts = text.split(new RegExp(`(${query})`, 'gi'));
-  return parts.map((p, i) =>
-    p.toLowerCase() === query.toLowerCase()
-      ? <mark key={i} className="bg-yellow-200 rounded px-0.5">{p}</mark>
-      : p
-  );
+function Highlight({ text, query }) {
+  const words = normalize(query).split(' ').filter(Boolean);
+  if (!words.length) return text;
+  const re = new RegExp(`(${words.map(escapeRegExp).join('|')})`, 'gi');
+  return String(text).split(re).map((part, i) =>
+    words.some(w => normalize(part) === w) ? <mark key={i} className="hit">{part}</mark> : part);
 }
 
-function ParamRow({ label, text, query }) {
-  const match = query && (label.toLowerCase().includes(query.toLowerCase()) || text.toLowerCase().includes(query.toLowerCase()));
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { window.prompt('העתיקו:', text); return false; }
+}
+
+function ClauseCard({ clause, query, active, isHit, onCopied }) {
+  const ref = useRef(null);
+  const quizCount = QUIZ.filter(q => q.clause === clause.id).length;
+  useEffect(() => {
+    if (active) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [active]);
+  const link = `${window.location.origin}${window.location.pathname}#/policy?c=${encodeURIComponent(clause.id)}`;
   return (
-    <div className={`flex gap-3 py-2.5 border-b border-gray-100 last:border-0 ${match ? 'bg-yellow-50 -mx-3 px-3 rounded-lg' : ''}`}>
-      <span className="font-bold text-blue-800 text-sm whitespace-nowrap min-w-[160px]">{highlight(label, query)}:</span>
-      <span className="text-gray-700 text-sm leading-relaxed">{highlight(text, query)}</span>
-    </div>
+    <motion.article
+      ref={ref}
+      id={`clause-${clause.id}`}
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0, scale: active ? 1.01 : 1 }}
+      className={`group relative rounded-xl p-4 sm:p-5 transition ${active ? 'bg-amber-50 ring-2 ring-amber-300 shadow-lg' : isHit ? 'bg-white ring-1 ring-amber-200' : 'bg-white/70 hover:bg-white'}`}
+      data-testid="clause"
+    >
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1.5">
+        <span className="font-mono text-xs px-2 py-0.5 rounded bg-blue-900 text-white">סעיף {clause.id}</span>
+        <h4 className="font-semibold text-blue-900"><Highlight text={clause.label} query={query} /></h4>
+      </div>
+      <p className="text-[15px] leading-7 text-blue-800"><Highlight text={clause.text} query={query} /></p>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        <button type="button" onClick={async () => { await copy(`"${clause.text}"\n${citationOf(clause)}`); onCopied(`הציטוט מסעיף ${clause.id} הועתק`); }}
+          className="px-2.5 py-1 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50">העתקת ציטוט</button>
+        <button type="button" onClick={async () => { await copy(link); onCopied(`הקישור לסעיף ${clause.id} הועתק`); }}
+          className="px-2.5 py-1 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50">קישור לסעיף</button>
+        {quizCount > 0 && (
+          <Link to={`/learn?mode=quiz&clause=${encodeURIComponent(clause.id)}`} className="px-2.5 py-1 rounded-md border border-teal-200 text-teal-800 hover:bg-teal-50">תרגול הסעיף</Link>
+        )}
+      </div>
+    </motion.article>
   );
 }
 
 export default function PolicyPage() {
-  const [search, setSearch] = useState('');
-  const [openSections, setOpenSections] = useState({ general: true, definitions: true, guidelines: true });
-  const [matchCount, setMatchCount] = useState(0);
-  const contentRef = useRef(null);
+  const [params, setParams] = useSearchParams();
+  const query = params.get('q') || '';
+  const activeId = params.get('c') || '';
+  const [toast, setToast] = useState('');
+  const [hitIndex, setHitIndex] = useState(0);
 
-  const q = search.trim();
+  const hits = useMemo(() => searchClauses(query), [query]);
+  const hitIds = new Set(hits.map(h => h.id));
+  const searching = normalize(query).length > 0;
 
-  useEffect(() => {
-    if (!q) { setMatchCount(0); return; }
-    let count = 0;
-    SECTIONS.forEach(s => {
-      if (s.params) s.params.forEach(p => {
-        if (p.label.toLowerCase().includes(q.toLowerCase()) || p.text.toLowerCase().includes(q.toLowerCase())) count++;
-      });
-      if (s.subsections) s.subsections.forEach(sub => sub.params.forEach(p => {
-        if (p.label.toLowerCase().includes(q.toLowerCase()) || p.text.toLowerCase().includes(q.toLowerCase())) count++;
-      }));
-    });
-    setMatchCount(count);
-    if (count > 0) setOpenSections({ general: true, definitions: true, guidelines: true });
-  }, [q]);
+  const update = (patch) => {
+    const next = new URLSearchParams(params);
+    Object.entries(patch).forEach(([k, v]) => (v ? next.set(k, v) : next.delete(k)));
+    setParams(next, { replace: true });
+  };
 
-  const toggle = (id) => setOpenSections(o => ({ ...o, [id]: !o[id] }));
+  const jumpTo = (i) => {
+    if (!hits.length) return;
+    const idx = (i + hits.length) % hits.length;
+    setHitIndex(idx);
+    update({ c: hits[idx].id });
+  };
+
+  useEffect(() => { setHitIndex(0); }, [query]);
+
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2000); };
+
+  const fullText = [
+    `${POLICY_META.title}, ${POLICY_META.issuer}`,
+    `תוקף בוועדה מס' ${POLICY_META.committee} מיום ${POLICY_META.date}`,
+    '',
+    ...CHAPTERS.flatMap(ch => [`${ch.id}. ${ch.title}`, ...ch.clauses.map(c => `${c.id} ${c.label}: ${c.text}`), '']),
+  ].join('\n');
 
   return (
-    <div dir="rtl" className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="bg-gradient-to-l from-blue-900 to-blue-700 text-white rounded-2xl p-6 mb-6 shadow">
-        <h2 className="text-2xl font-bold mb-1">מדיניות סגירות חורף וסגירות עונתיות</h2>
-        <p className="text-blue-200 text-sm">עיריית אשדוד · תוקף בועדה מס׳ 202411 · 24/10/2024</p>
-      </div>
+    <div className="space-y-6">
+      <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ink rounded-2xl overflow-hidden shadow-xl">
+        <div className="blueprint p-6 sm:p-8">
+          <div className="label !text-blue-300 mb-2">מסמך מצוטט · {ALL_CLAUSES.length} סעיפים</div>
+          <h1 className="text-3xl sm:text-4xl font-extralight tracking-tight">{POLICY_META.title}</h1>
+          <p className="mt-2 text-blue-200 text-sm font-mono">{POLICY_META.issuer} · ועדה {POLICY_META.committee} · {POLICY_META.date}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" onClick={async () => { await copy(fullText); flash('המסמך המלא הועתק'); }} className="px-3 py-1.5 rounded-lg text-sm bg-white text-blue-900 hover:bg-blue-100">העתקת המסמך המלא</button>
+            <button type="button" onClick={() => window.print()} className="px-3 py-1.5 rounded-lg text-sm border border-blue-600 text-blue-100 hover:bg-blue-800">הדפסה</button>
+          </div>
+        </div>
+      </motion.header>
 
-      {/* Search */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 shadow-sm">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="sticky top-[104px] sm:top-[112px] z-[900] paper rounded-xl p-3 sm:p-4">
+        <label className="label block mb-1.5" htmlFor="policy-search">חיפוש מילות מפתח במסמך</label>
+        <div className="flex gap-2 min-w-0">
           <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="חפש פרמטר, נושא או מילת מפתח..."
-            className="w-full border border-gray-200 rounded-lg pr-10 pl-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            id="policy-search"
+            type="search"
+            value={query}
+            onChange={e => update({ q: e.target.value, c: '' })}
+            onKeyDown={e => { if (e.key === 'Enter') jumpTo(e.shiftKey ? hitIndex - 1 : hitIndex + (activeId ? 1 : 0)); }}
+            placeholder="למשל: מרווח מדרכה, שיפוע, 30 מ&quot;ר"
+            className="flex-1 min-w-0 rounded-lg border border-blue-200 bg-white px-3 py-2.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute left-3 top-1/2 -translate-y-1/2">
-              <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
-            </button>
+          {searching && (
+            <div className="flex gap-1 flex-none">
+              <button type="button" onClick={() => jumpTo(hitIndex - 1)} disabled={!hits.length} className="px-3 rounded-lg border border-blue-200 text-sm disabled:opacity-40">הקודם</button>
+              <button type="button" onClick={() => jumpTo(hitIndex + (activeId ? 1 : 0))} disabled={!hits.length} className="px-3 rounded-lg bg-blue-900 text-white text-sm disabled:opacity-40">הבא</button>
+            </div>
           )}
         </div>
-        {q && (
-          <p className="text-xs mt-2 text-gray-500">
-            {matchCount > 0 ? <span className="text-green-700 font-medium">נמצאו {matchCount} תוצאות עבור "{q}"</span> : <span className="text-red-500">לא נמצאו תוצאות עבור "{q}"</span>}
-          </p>
-        )}
+        <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+          {searching ? (
+            <p className="text-sm" data-testid="search-count">
+              {hits.length ? <span className="text-green-800">נמצאו {hits.length} סעיפים: {hits.map(h => h.id).join(', ')}</span> : <span className="text-red-700">לא נמצאו סעיפים. נסו מילה אחרת.</span>}
+              <button type="button" onClick={() => update({ q: '', c: '' })} className="mr-2 underline text-blue-600">ניקוי</button>
+            </p>
+          ) : KEYWORDS.map(k => (
+            <button key={k} type="button" onClick={() => update({ q: k })} className="px-2.5 py-1 rounded-full text-xs bg-blue-100 text-blue-800 hover:bg-blue-200 transition">{k}</button>
+          ))}
+        </div>
       </div>
 
-      {/* Sections */}
-      <div className="space-y-4">
-        {SECTIONS.map(section => (
-          <div key={section.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <button
-              onClick={() => toggle(section.id)}
-              className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-all"
-            >
-              <h3 className="text-lg font-bold text-blue-900">{highlight(section.title, q)}</h3>
-              {openSections[section.id] ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
-            </button>
-
-            {openSections[section.id] && (
-              <div className="px-6 pb-6 border-t border-gray-100">
-                {section.content && (
-                  <div className="pt-4 space-y-2">
-                    {section.content.map((c, i) => (
-                      <p key={i} className={`text-sm ${c.bold ? 'font-bold text-gray-800' : 'text-gray-700'} leading-relaxed`}>
-                        {highlight(c.text, q)}
-                      </p>
-                    ))}
-                  </div>
-                )}
-
-                {section.params && (
-                  <div className="pt-4">
-                    {section.params.map((p, i) => (
-                      <ParamRow key={i} label={p.label} text={p.text} query={q} />
-                    ))}
-                  </div>
-                )}
-
-                {section.subsections && (
-                  <div className="pt-4 space-y-6">
-                    {section.subsections.map(sub => (
-                      <div key={sub.id}>
-                        <h4 className="font-bold text-blue-700 mb-3 text-base border-b border-blue-100 pb-2">
-                          {highlight(sub.title, q)}
-                        </h4>
-                        <div>
-                          {sub.params.map((p, i) => (
-                            <ParamRow key={i} label={p.label} text={p.text} query={q} />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <aside className="hidden lg:block">
+          <nav className="sticky top-[270px] paper rounded-xl p-3 text-sm space-y-3 max-h-[calc(100vh-290px)] overflow-y-auto">
+            <div className="label">תוכן עניינים</div>
+            {CHAPTERS.map(ch => (
+              <div key={ch.id}>
+                <div className="font-semibold text-blue-900 mb-1">{ch.id}. {ch.title}</div>
+                <div className="flex flex-wrap gap-1">
+                  {ch.clauses.map(c => (
+                    <button key={c.id} type="button" onClick={() => update({ c: c.id })} title={c.label}
+                      className={`font-mono text-[11px] px-1.5 py-0.5 rounded ${activeId === c.id ? 'bg-amber-300 text-blue-950' : hitIds.has(c.id) ? 'bg-amber-100 text-blue-900' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>{c.id}</button>
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+            ))}
+          </nav>
+        </aside>
+
+        <div className="space-y-8 min-w-0">
+          {CHAPTERS.map(ch => {
+            const visible = searching ? ch.clauses.filter(c => hitIds.has(c.id)) : ch.clauses;
+            if (!visible.length) return null;
+            return (
+              <section key={ch.id} className="min-w-0">
+                <h2 className="text-xl font-light text-blue-900 mb-3 flex items-baseline gap-3">
+                  <span className="font-mono text-sm text-blue-500">{ch.id}</span>{ch.title}
+                </h2>
+                <div className="space-y-2.5">
+                  {visible.map(c => (
+                    <ClauseCard key={c.id} clause={c} query={query} active={activeId === c.id} isHit={hitIds.has(c.id)} onCopied={flash} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+          <p className="text-xs text-blue-500 border-t border-blue-200 pt-4">
+            מקור: {POLICY_META.title}, {POLICY_META.issuer}, תוקף בוועדה מס' {POLICY_META.committee} מיום {POLICY_META.date}. כלי זה מנגיש את המסמך ואינו מחליף את נוסחו המחייב.
+          </p>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-5 inset-x-0 mx-auto w-fit z-[2000] ink px-4 py-2 rounded-lg shadow-xl text-sm" role="status">{toast}</motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

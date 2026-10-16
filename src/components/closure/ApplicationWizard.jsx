@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, X, ImageIcon, ChevronRight, ChevronLeft, Send, Plus, Trash2, UtensilsCrossed, Save } from 'lucide-react';
+import { Upload, ImageIcon, ChevronRight, ChevronLeft, Send, Plus, UtensilsCrossed, Save } from '@/lib/noIcons';
 import { base44 } from '@/api/base44Client';
 import { nextApplicationId } from '@/lib/applicationId';
 import MapPicker from './MapPicker';
@@ -70,7 +70,7 @@ function CheckItem({ id, text, checked, onChange, fileUrl, onFileChange }) {
         <div className="mt-2 mr-7">
           {fileUrl ? (
             <div className="flex items-center gap-2">
-              <FileLink url={fileUrl}>קובץ מצורף ✓</FileLink>
+              <FileLink url={fileUrl}>קובץ מצורף</FileLink>
               <button type="button" onClick={() => onFileChange(id, null)} className="text-red-400 hover:text-red-600 text-xs">הסר</button>
             </div>
           ) : (
@@ -112,7 +112,7 @@ function FileUpload({ label, value, onChange, multiple }) {
               <div key={i} className="relative">
                 <FileThumb url={url} />
                 <button type="button" onClick={() => onChange((value || []).filter((_, j) => j !== i))}
-                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"><X className="w-2.5 h-2.5" /></button>
+                  className="absolute -top-1 -right-1 bg-red-600 text-white rounded-md px-1.5 py-0.5 text-[10px] font-medium shadow">הסרה</button>
               </div>
             ))}
           </div>
@@ -126,7 +126,7 @@ function FileUpload({ label, value, onChange, multiple }) {
           {value ? (
             <div className="relative inline-block">
               <FileThumb url={value} className="w-40 h-32" />
-              <button type="button" onClick={() => onChange(null)} className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"><X className="w-3 h-3" /></button>
+              <button type="button" onClick={() => onChange(null)} className="absolute top-1 left-1 bg-red-600 text-white rounded-md px-1.5 py-0.5 text-[10px] font-medium shadow">הסרה</button>
             </div>
           ) : (
             <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-gray-200 rounded-lg px-4 py-3 hover:border-blue-300 transition text-sm text-gray-500">
@@ -269,7 +269,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={onCancel} className="text-blue-600 hover:text-blue-800 text-sm font-medium">→ חזרה</button>
+        <button onClick={onCancel} className="text-blue-600 hover:text-blue-800 text-sm font-medium">חזרה</button>
         <h2 className="text-xl font-bold text-gray-800">{isEdit ? 'עריכה והגשה מחדש' : 'הגשת בקשה חדשה'}</h2>
       </div>
 
@@ -528,7 +528,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
                   {item.image ? (
                     <div className="relative flex-shrink-0">
                       <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-lg border" />
-                      <button type="button" onClick={() => updateMenuItem(i, 'image', null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"><X className="w-2.5 h-2.5" /></button>
+                      <button type="button" onClick={() => updateMenuItem(i, 'image', null)} className="absolute -top-1 -right-1 bg-red-600 text-white rounded-md px-1.5 py-0.5 text-[10px] font-medium shadow">הסרה</button>
                     </div>
                   ) : (
                     <label className="flex-shrink-0 w-14 h-14 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-400 transition text-gray-400 text-xs">
@@ -554,7 +554,7 @@ export default function ApplicationWizard({ application, onCancel, onSaved }) {
                     className="w-20 sm:w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
                   />
                   <button type="button" onClick={() => removeMenuItem(i)} className="text-red-400 hover:text-red-600 transition flex-shrink-0">
-                    <Trash2 className="w-4 h-4" />
+                    <span className="text-xs font-medium">מחיקה</span>
                   </button>
                 </div>
               ))}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { CHECKLIST_CLAUSES } from '@/lib/policy';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from '../components/closure/StatusBadge';
@@ -7,12 +8,14 @@ import FileLink, { FileThumb } from '../components/closure/FileLink';
 import {
   checklistFor, DOCS_LABELS, DOCUMENTS_TYPE2, STATUS_ACTION_LABELS, typeLabel, missingFieldsOf, menuItemsOf,
 } from '../components/closure/constants';
-import { TILE_URL, TILE_ATTRIBUTION, hasCoords } from '@/lib/map';
+import {  hasCoords } from '@/lib/map';
+import { baseMapOf } from '@/lib/map';
+import { useSettings } from '@/lib/settings';
 import {
   ArrowRight, Mail, FileText, CheckCircle, XCircle,
   AlertCircle, Send, ImageIcon, Building2, Calendar,
   CheckSquare, ChevronDown, ChevronUp, Printer, Trash2, Copy
-} from 'lucide-react';
+} from '@/lib/noIcons';
 
 function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -66,6 +69,7 @@ function FieldRow({ label, value, missing }) {
 }
 
 export default function ApplicationDetailPage() {
+  const baseMap = baseMapOf(useSettings().baseMap);
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState(null);
@@ -130,28 +134,28 @@ export default function ApplicationDetailPage() {
       `ג. שדות חסרים`,
       thin,
       missingF.length === 0
-        ? '✅ כל השדות מולאו כראוי'
-        : missingF.map(f => `⚠️  ${f}`).join('\n'),
+        ? 'כל השדות מולאו כראוי'
+        : missingF.map(f => `חסר: ${f}`).join('\n'),
       '',
       thin,
       `ד. עמידת בתנאים (${checked.length}/${checklist.length})`,
       thin,
-      checked.length > 0 ? checked.map(c => `✓  ${c.text}`).join('\n') : 'אין תנאים שאושרו',
+      checked.length > 0 ? checked.map(c => `[תקין] ${c.text}`).join('\n') : 'אין תנאים שאושרו',
       '',
       unchecked.length > 0 ? [
         `תנאים שלא אושרו (${unchecked.length}):`,
-        ...unchecked.map(c => `✗  ${c.text}`)
-      ].join('\n') : '✅ כל התנאים אושרו',
+        ...unchecked.map(c => `[לא תקין] ${c.text}`)
+      ].join('\n') : 'כל התנאים אושרו',
       '',
       thin,
       `ה. מסמכים שהועלו (${uploaded.length}/${DOCS_LABELS.length})`,
       thin,
-      uploaded.length > 0 ? uploaded.map(d => `✓  ${d.label}`).join('\n') : 'לא הועלו מסמכים',
+      uploaded.length > 0 ? uploaded.map(d => `[הועלה] ${d.label}`).join('\n') : 'לא הועלו מסמכים',
       '',
       missing.length > 0 ? [
         `מסמכים חסרים (${missing.length}):`,
-        ...missing.map(d => `✗  ${d.label}`)
-      ].join('\n') : '✅ כל המסמכים הועלו',
+        ...missing.map(d => `[חסר] ${d.label}`)
+      ].join('\n') : 'כל המסמכים הועלו',
       '',
       thin,
       `ו. הערות הבודק`,
@@ -288,7 +292,7 @@ export default function ApplicationDetailPage() {
         {/* Quick summary */}
         <div className="mt-4 grid grid-cols-3 gap-3 text-center">
           <div className={`rounded-xl p-3 ${missingFields.length === 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-            <div className={`text-2xl font-bold ${missingFields.length === 0 ? 'text-green-700' : 'text-red-600'}`}>{missingFields.length === 0 ? '✓' : missingFields.length}</div>
+            <div className={`text-2xl font-bold ${missingFields.length === 0 ? 'text-green-700' : 'text-red-600'}`}>{missingFields.length === 0 ? 'תקין' : missingFields.length}</div>
             <div className="text-xs text-gray-500 mt-0.5">{missingFields.length === 0 ? 'כל השדות מולאו' : 'שדות חסרים'}</div>
           </div>
           <div className={`rounded-xl p-3 ${uncheckedItems.length === 0 ? 'bg-green-50' : 'bg-amber-50'}`}>
@@ -313,8 +317,8 @@ export default function ApplicationDetailPage() {
         <FieldRow label="מיקום" value={hasCoords(app) ? `${Number(app.lat).toFixed(5)}, ${Number(app.lng).toFixed(5)}` : null} />
         {hasCoords(app) && (
           <div className="mt-3 rounded-xl overflow-hidden border border-gray-200 relative z-0" style={{ height: 200 }}>
-            <MapContainer center={[Number(app.lat), Number(app.lng)]} zoom={17} className="w-full h-full" scrollWheelZoom={false}>
-              <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
+            <MapContainer center={[Number(app.lat), Number(app.lng)]} zoom={17} className="w-full h-full map-ltr" scrollWheelZoom={false}>
+              <TileLayer key={baseMap.url} attribution={baseMap.attribution} url={baseMap.url} />
               <Marker position={[Number(app.lat), Number(app.lng)]} />
             </MapContainer>
           </div>
@@ -374,10 +378,11 @@ export default function ApplicationDetailPage() {
             const checked = app.checklist?.[item.id];
             return (
               <div key={item.id} className={`flex items-start gap-2.5 p-2.5 rounded-xl text-sm ${checked ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-700'}`}>
-                {checked
-                  ? <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                  : <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />}
-                {item.text}
+                <span className={`flex-none text-[11px] text-white px-1.5 py-0.5 rounded font-medium ${checked ? 'bg-green-700' : 'bg-red-700'}`}>{checked ? 'תקין' : 'לא תקין'}</span>
+                <span className="flex-1">{item.text}</span>
+                {CHECKLIST_CLAUSES[item.id] && (
+                  <Link to={`/policy?c=${encodeURIComponent(CHECKLIST_CLAUSES[item.id])}`} className="flex-none font-mono text-xs underline opacity-80">סעיף {CHECKLIST_CLAUSES[item.id]}</Link>
+                )}
               </div>
             );
           })}
@@ -422,7 +427,7 @@ export default function ApplicationDetailPage() {
             <div className="space-y-1.5">
               {type2Docs.map(d => (
                 <div key={d.id} className="flex items-center gap-2 text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-2">
-                  {app.docs_checklist?.[d.id] ? <CheckCircle className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-gray-300" />}
+                  <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium ${app.docs_checklist?.[d.id] ? 'bg-green-700 text-white' : 'bg-gray-200 text-gray-700'}`}>{app.docs_checklist?.[d.id] ? 'סומן' : 'לא סומן'}</span>
                   <span className="flex-1">{d.text}</span>
                   {app.docs_files?.[d.id] ? <FileLink url={app.docs_files[d.id]}>פתח קובץ</FileLink> : <span className="text-xs text-gray-400">לא צורף קובץ</span>}
                 </div>
@@ -473,7 +478,7 @@ export default function ApplicationDetailPage() {
                 }`}>
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="font-semibold text-gray-700">
-                      {entry.type === 'email_sent' ? '✉️ נשלח מייל' : '🔄 שינוי סטטוס'}
+                      {entry.type === 'email_sent' ? 'נשלח מייל' : 'שינוי סטטוס'}
                       {statusLabel && ` — ${statusLabel}`}
                     </span>
                     <span className="text-xs text-gray-400">{entry.date ? new Date(entry.date).toLocaleString('he-IL') : ''}</span>

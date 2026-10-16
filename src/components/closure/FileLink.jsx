@@ -1,4 +1,4 @@
-import { ExternalLink, FileText } from 'lucide-react';
+import { ExternalLink, FileText } from '@/lib/noIcons';
 import { openFile, isImageUrl } from '@/lib/files';
 
 // Clickable file reference that works for data: URLs (which browsers won't open directly).
