@@ -14,19 +14,19 @@ Closure permits (winter screen type 1, seasonal closure type 2) for Ashdod food 
 - `src/lib/policy.js`: the policy as clauses with ids (א.1 ... ג.18), `citationOf`, search, and `CHECKLIST_CLAUSES` (reviewer checklist to clause). Single source for the policy page, game and checklist.
 - `src/lib/guidelines.js`: the 12 visual guidelines (clause, rule, right vs wrong, 3D parameters). `src/components/ClosureScene3D.jsx`: three.js street model (lazy-loaded), animated between parameter sets, HTML labels projected onto the model, OrbitControls.
 - `src/lib/quiz.js` + `src/components/Quiz.jsx`: true / false questions, each cites a clause.
-- `src/lib/demoData.js`: 12 demo records ("(הדגמה)" in the name, `demo: true`), loaded once into an empty browser (`seedOnce` in Layout), removable in "מערכת".
+- `src/lib/demoData.js`: 12 demo records ("(הדגמה)" in the name, `demo: true`), loaded once into an empty browser (`seedOnce` in Layout), removable in הגדרות המערכת (inside the A&I logo button).
 - `src/lib/streets.js`: loads `cl_streets`, parses "street number", matches typed names to official streets (word order, שד/שדרות, quotes and a dropped leading ה ignored), distance to the street line.
 - `locateAddress` in `src/lib/map.js`: Nominatim is queried with the official street name; the hit must lie within 250 m of that street, otherwise the closure is placed on the street (precision `street`). Records store `street_code`, `street_name`, `location_precision`.
 - `src/components/VerdictMark.jsx`: large animated green check / red X for right vs wrong.
 - `src/lib/map.js`: free base maps (default OSM street map of Ashdod with Hebrew names, CARTO Voyager, Esri imagery), map limited to `ASHDOD_BOUNDS`, link to the official municipal GIS, OSM food venues (`public/data/osm-venues.json` snapshot + live Overpass refresh), pins (circle = type 1, square = type 2).
 - `src/lib/settings.js`: persisted settings, install prompt, dev-chat URL.
-- `src/components/Layout.jsx` top bar: app name (home link) + one "מערכת" button. `src/components/SettingsDrawer.jsx` is the system drawer: copy link, dev chat, install, backup, base map, OSM layer, demo data, wipe.
+- `src/components/Layout.jsx` top bar: app name (home link) + the A&I logo button (`<ai-menu>`: copy link, dev chat, install, and "הגדרות המערכת"). `src/components/SettingsDrawer.jsx` is the system drawer opened from that item: backup, base map, OSM layer, demo data, wipe.
 - Map (`src/pages/MapView.jsx`): add a closure by address (Nominatim, Ashdod viewbox), by clicking the map (reverse geocode fills the address), or a pasted list ("address" or "business | address", one per second). Status `mapped` = "סגירה קיימת" (surveyed closure, not an application); hidden from the owner's "my requests".
 
 ## Non-negotiables
 - Hebrew, RTL, no icons or emoji. `lucide-react` imports in app code go to `src/lib/noIcons.jsx` (renders nothing). Icon-only buttons must get text. Exception by Anat: right / wrong is always marked with the large designed green check / red X (`VerdictMark`), next to a text label.
 - Every map is a real map of Ashdod with readable Hebrew street names, and every address is correlated with the official Ashdod street list. This is the default, never something Anat has to ask for.
-- All buttons in the top bar live inside the single "מערכת" button (overrides the skill's top-bar buttons, per Anat 2026-10-16).
+- All buttons in the top bar live inside the single A&I logo button (replaced the "מערכת" button on 2026-10-24).
 - Policy outputs always show the clause id and link to `/policy?c=<id>`. Never invent policy content. The policy page itself has no copy / link buttons per clause.
 - Demo data is labeled "הדגמה" and removable.
 - Design: graphite palette (tailwind `blue` is remapped to graphite in `tailwind.config.js`), IBM Plex Sans Hebrew / Mono, depth via `.paper`, `.ink`, `.lift`. Status colors keep meaning and always carry a text label.
@@ -59,3 +59,6 @@ Final URL + one line. Update this file.
 - 2026-10-16: Owner, municipality and resident pages must not be empty: real content plus demo data.
 - 2026-10-16: The Ashdod map was missing. Always connect a real Ashdod map with streets correlated to the official street list, without being asked.
 - 2026-10-16: Mark "כך נכון" / "כך לא" with a large designed green check and red X.
+
+## A&I logo button
+The top bar holds only the app name (links home), content navigation, and ONE logo button "אד' ענת שטיבלמן A&I" (`<ai-menu>` from https://appofapp-gh.vercel.app/ai-menu.js). Every editing and development action (העתקת קישור, שיחת הפיתוח, פרויקט המחקר, התקנת האפליקציה, edit mode, add, delete) lives only inside it, never as loose buttons. Standard: https://github.com/Anat1969/AppOfApp-GH/blob/main/docs/ai-menu-standard.md

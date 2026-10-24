@@ -1,9 +1,10 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import SettingsDrawer from './SettingsDrawer';
 import { useNeedsBackup } from './BackupMenu';
 import { seedOnce, demoCount } from '@/lib/demoData';
+import { DEV_CHAT_URL } from '@/lib/settings';
 
 const NAV_ITEMS = [
   { path: '/', label: 'בית', end: true },
@@ -21,6 +22,15 @@ export default function Layout() {
   const [ready, setReady] = useState(false);
   const [demo, setDemo] = useState(0);
   const needsBackup = useNeedsBackup();
+  const menu = useRef(null);
+
+  // The A&I logo button holds copy link, dev chat, install and the system drawer (backup, base map, demo data).
+  useEffect(() => {
+    const el = menu.current;
+    if (!el) return;
+    el.items = [{ label: systemOpen ? 'סגירת הגדרות המערכת' : 'הגדרות המערכת', hint: 'גיבוי, מפה, הדגמה', pressed: systemOpen, onSelect: () => setSystemOpen(o => !o) }];
+    el.status = needsBackup ? 'מומלץ לגבות' : '';
+  }, [systemOpen, needsBackup]);
 
   useEffect(() => {
     seedOnce().catch(() => {}).finally(() => setReady(true));
@@ -44,15 +54,7 @@ export default function Layout() {
               </div>
             </Link>
             <div className="flex-1" />
-            <button
-              type="button"
-              onClick={() => setSystemOpen(o => !o)}
-              aria-expanded={systemOpen}
-              className={`relative flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition border ${systemOpen ? 'bg-white text-blue-900 border-white' : 'border-blue-600 text-blue-100 hover:bg-blue-800'}`}
-            >
-              מערכת
-              {needsBackup && <span className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-blue-900" title="מומלץ לגבות" />}
-            </button>
+            <ai-menu ref={menu} chat={DEV_CHAT_URL} />
           </div>
           <nav className="max-w-7xl mx-auto flex gap-1 px-4 pb-2.5 overflow-x-auto min-w-0 [scrollbar-width:none]">
             {NAV_ITEMS.map(item => (
@@ -76,7 +78,7 @@ export default function Layout() {
       <main className="max-w-7xl w-full mx-auto px-4 py-6 min-w-0">
         {demo > 0 && (
           <div className="mb-4 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-900" data-testid="demo-banner">
-            מוצגים {demo} רשומות הדגמה כדי להמחיש את המערכת. אפשר להסיר אותן בכפתור "מערכת".
+            מוצגים {demo} רשומות הדגמה כדי להמחיש את המערכת. אפשר להסיר אותן בהגדרות המערכת שבכפתור A&I.
           </div>
         )}
         {ready ? (
