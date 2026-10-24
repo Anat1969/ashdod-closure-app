@@ -15,6 +15,8 @@ async function mockExternal(page) {
   const external = [];
   await page.route(/^https?:\/\/(?!localhost)/, async route => {
     const url = route.request().url();
+    // The A&I logo button comes from the portfolio app; AI_MENU_JS can point to a local copy.
+    if (url === 'https://appofapp-gh.vercel.app/ai-menu.js') return process.env.AI_MENU_JS ? route.fulfill({ path: process.env.AI_MENU_JS, contentType: 'application/javascript' }) : route.continue();
     external.push(url);
     if (/overpass-api/.test(url)) {
       return route.fulfill({ json: { elements: [{ type: 'node', id: 1, lat: 31.79, lon: 34.64, tags: { name: 'בדיקה', amenity: 'cafe', outdoor_seating: 'yes' } }] } });
@@ -44,24 +46,27 @@ test.beforeEach(async ({ page, context }) => {
   await mockExternal(page);
 });
 
-test('one system button holds every technical control', async ({ page }) => {
+test('the A&I logo button holds every technical control', async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /סגירה טובה/ })).toBeVisible();
-  await expect(page.locator('header > div button')).toHaveCount(1);
+  await expect(page.locator('header > div button')).toHaveCount(1); // only the A&I logo button
+  await expect(page.locator('ai-menu .logo')).toBeVisible();
   await expect(page.getByTestId('demo-banner')).toContainText('12');
   for (const name of ['הנחיות ויזואליות', 'מסמך המדיניות', 'מפת סגירות', 'בעל עסק', 'עירייה', 'תושב', 'בית']) {
     await page.getByRole('navigation').getByRole('link', { name, exact: true }).click();
     await expect(page.locator('main')).toBeVisible();
   }
   await page.getByTestId('home-link').click();
-  await page.getByRole('button', { name: 'מערכת' }).click();
+  await page.locator('ai-menu .logo').click();
+  await expect(page.locator('ai-menu a.item', { hasText: 'שיחת הפיתוח' })).toHaveAttribute('href', /claude\.ai\/code/);
+  await page.locator('ai-menu .item', { hasText: 'העתקת קישור' }).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('#/');
+  await page.waitForTimeout(1000);
+  await page.locator('ai-menu .logo').click();
+  await page.locator('ai-menu .item', { hasText: 'הגדרות המערכת' }).click();
   const drawer = page.getByTestId('system-drawer');
   await expect(drawer).toBeVisible();
-  await drawer.getByRole('button', { name: 'העתקת קישור' }).click();
-  await expect(page.getByTestId('system-status')).toHaveText(/הועתק/);
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('#/');
-  await expect(drawer.getByRole('link', { name: 'שיחת הפיתוח' })).toHaveAttribute('href', /claude\.ai\/code/);
   for (const b of ['מפה בהירה', 'תצלום אוויר', 'מפת רחובות אשדוד']) await drawer.getByRole('button', { name: b }).click();
   await drawer.getByRole('button', { name: 'רענון מ-OSM' }).click();
   await expect(page.getByTestId('system-status')).toHaveText(/עודכנו 1/);

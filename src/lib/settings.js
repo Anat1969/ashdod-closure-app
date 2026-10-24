@@ -20,27 +20,4 @@ export function useSettings() {
   return useSyncExternalStore(cb => { listeners.add(cb); return () => listeners.delete(cb); }, () => state);
 }
 
-// Chrome install prompt, captured once for the whole app.
-let deferredPrompt = null;
-const installListeners = new Set();
-if (typeof window !== 'undefined') {
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installListeners.forEach(l => l());
-  });
-  window.addEventListener('appinstalled', () => { deferredPrompt = null; installListeners.forEach(l => l()); });
-}
-export function useInstallPrompt() {
-  const canInstall = useSyncExternalStore(cb => { installListeners.add(cb); return () => installListeners.delete(cb); }, () => !!deferredPrompt);
-  const install = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice.catch(() => {});
-    deferredPrompt = null;
-    installListeners.forEach(l => l());
-  };
-  return { canInstall, install };
-}
-
 export const DEV_CHAT_URL = 'https://claude.ai/code/session_01UfKVjwp9nrKouMWriPsTEn';
